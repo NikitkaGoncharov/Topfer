@@ -1,0 +1,79 @@
+{% extends 'finance/base.html' %}
+
+{% block title %}Аналитика - Topfer{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Аналитика</h2>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="widget">
+            <h5 class="widget-title text-danger">
+                <i class="bi bi-arrow-down-circle"></i> Расходы по категориям
+            </h5>
+            {% if expense_by_category %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Категория</th>
+                            <th class="text-end">Сумма</th>
+                            <th class="text-end">Транзакций</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in expense_by_category %}
+                        <tr>
+                            <td>
+                                {% if category.icon %}{{ category.icon }}{% endif %}
+                                {{ category.category_name }}
+                            </td>
+                            <td class="text-end">{{ category.total_amount|default:0|floatformat:2 }} ₽</td>
+                            <td class="text-end">{{ category.count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">Нет данных</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="widget">
+            <h5 class="widget-title text-success">
+                <i class="bi bi-arrow-up-circle"></i> Доходы по категориям
+            </h5>
+            {% if income_by_category %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Категория</th>
+                            <th class="text-end">Сумма</th>
+                            <th class="text-end">Транзакций</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in income_by_category %}
+                        <tr>
+                            <td>
+                                {% if category.icon %}{{ category.icon }}{% endif %}
+                                {{ category.category_name }}
+                            </td>
+                            <td class="text-end">{{ category.total_amount|default:0|floatformat:2 }} ₽</td>
+                            <td class="text-end">{{ category.count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">Нет данных</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
