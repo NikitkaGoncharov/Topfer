@@ -1,0 +1,226 @@
+{% extends 'finance/base.html' %}
+
+{% block title %}Главная - Topfer{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Финансовый обзор</h2>
+
+<!-- Статистические карточки -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <p>Общая сумма</p>
+            <h3>{{ total_balance|floatformat:2 }} ₽</h3>
+            <small>на всех счетах</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <p>Доход за месяц</p>
+            <h3>{{ monthly_income|floatformat:2 }} ₽</h3>
+            <small>за последние 30 дней</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <p>Расход за месяц</p>
+            <h3>{{ monthly_expense|floatformat:2 }} ₽</h3>
+            <small>за последние 30 дней</small>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Левая колонка -->
+    <div class="col-md-6">
+        <!-- Виджет: Топ категорий расходов -->
+        <div class="widget">
+            <h5 class="widget-title">
+                <i class="bi bi-pie-chart"></i> Мои финансы
+                <a href="{% url 'finance:analytics' %}" class="btn btn-sm btn-outline-primary float-end">
+                    Подробнее <i class="bi bi-arrow-right"></i>
+                </a>
+            </h5>
+            {% if top_expense_categories %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Категория</th>
+                            <th class="text-end">Транзакций</th>
+                            <th class="text-end">%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in top_expense_categories %}
+                        <tr>
+                            <td>
+                                {% if category.icon %}{{ category.icon }}{% endif %}
+                                {{ category.category_name }}
+                            </td>
+                            <td class="text-end">{{ category.transaction_count }}</td>
+                            <td class="text-end">
+                                {% widthratio category.transaction_count transactions_count 100 %}%
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">Нет данных по категориям</p>
+            {% endif %}
+        </div>
+
+        <!-- Виджет: Последние транзакции -->
+        <div class="widget">
+            <h5 class="widget-title">
+                <i class="bi bi-clock-history"></i> Последние транзакции
+                <a href="{% url 'finance:transactions' %}" class="btn btn-sm btn-outline-primary float-end">
+                    Все транзакции <i class="bi bi-arrow-right"></i>
+                </a>
+            </h5>
+            {% if recent_transactions %}
+            <div class="list-group list-group-flush">
+                {% for transaction in recent_transactions %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">
+                            {% if transaction.category %}
+                                {% if transaction.category.icon %}{{ transaction.category.icon }}{% endif %}
+                                {{ transaction.category.category_name }}
+                            {% else %}
+                                {{ transaction.account.account_name }}
+                            {% endif %}
+                        </h6>
+                        <small class="text-muted">
+                            {{ transaction.transaction_date|date:"d.m.Y H:i" }}
+                            {% if transaction.description %}
+                            - {{ transaction.description|truncatewords:5 }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div>
+                        <strong class="{% if transaction.transaction_type == 'income' %}income{% elif transaction.transaction_type == 'expense' %}expense{% else %}transfer{% endif %}">
+                            {% if transaction.transaction_type == 'income' %}+{% elif transaction.transaction_type == 'expense' %}-{% endif %}
+                            {{ transaction.amount|floatformat:2 }} {{ transaction.account.currency.symbol }}
+                        </strong>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">Нет транзакций</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Правая колонка -->
+    <div class="col-md-6">
+        <!-- Виджет: Популярные счета -->
+        <div class="widget">
+            <h5 class="widget-title">
+                <i class="bi bi-star"></i> Популярные активы
+                <a href="{% url 'finance:accounts' %}" class="btn btn-sm btn-outline-primary float-end">
+                    Все счета <i class="bi bi-arrow-right"></i>
+                </a>
+            </h5>
+            {% if popular_accounts %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Тип</th>
+                            <th class="text-end">Баланс</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in popular_accounts %}
+                        <tr>
+                            <td>
+                                <strong>{{ account.account_name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ account.user.email }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ account.get_account_type_display }}</span>
+                            </td>
+                            <td class="text-end">
+                                <strong>{{ account.balance|floatformat:2 }} {{ account.currency.symbol }}</strong>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">Нет счетов</p>
+            {% endif %}
+        </div>
+
+        <!-- Виджет: Активные бюджеты -->
+        <div class="widget">
+            <h5 class="widget-title">
+                <i class="bi bi-calendar-check"></i> Активные бюджеты
+            </h5>
+            {% if active_budgets %}
+            <div class="list-group list-group-flush">
+                {% for budget in active_budgets %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">{{ budget.budget_name }}</h6>
+                        <span class="badge bg-info">{{ budget.get_period_type_display }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">
+                            {% if budget.category %}{{ budget.category.category_name }}{% else %}Общий{% endif %}
+                        </small>
+                        <strong>{{ budget.amount|floatformat:2 }} ₽</strong>
+                    </div>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 60%"></div>
+                    </div>
+                    <small class="text-muted">
+                        {{ budget.start_date|date:"d.m.Y" }} -
+                        {% if budget.end_date %}{{ budget.end_date|date:"d.m.Y" }}{% else %}Бессрочно{% endif %}
+                    </small>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">Нет активных бюджетов</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Дополнительная статистика -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="widget">
+            <h5 class="widget-title">
+                <i class="bi bi-info-circle"></i> Общая статистика
+            </h5>
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <h2 class="text-primary">{{ accounts_count }}</h2>
+                    <p class="text-muted">Всего счетов</p>
+                </div>
+                <div class="col-md-3">
+                    <h2 class="text-success">{{ transactions_count }}</h2>
+                    <p class="text-muted">Всего транзакций</p>
+                </div>
+                <div class="col-md-3">
+                    <h2 class="text-info">{{ top_expense_categories.count }}</h2>
+                    <p class="text-muted">Категорий расходов</p>
+                </div>
+                <div class="col-md-3">
+                    <h2 class="text-warning">{{ active_budgets.count }}</h2>
+                    <p class="text-muted">Активных бюджетов</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
