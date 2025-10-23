@@ -55,6 +55,7 @@ class User(models.Model):
         ordering = ['-registration_date']
 
     def __str__(self):
+        """Возвращает строковое представление пользователя"""
         return f"{self.email} ({self.get_subscription_type_display()})"
 
 
@@ -81,6 +82,7 @@ class Currency(models.Model):
         ordering = ['currency_code']
 
     def __str__(self):
+        """Возвращает строковое представление валюты"""
         return f"{self.currency_code} - {self.currency_name}"
 
 
@@ -127,6 +129,7 @@ class Category(models.Model):
         ordering = ['category_type', 'category_name']
 
     def __str__(self):
+        """Возвращает строковое представление категории с учетом родительской категории"""
         if self.parent_category:
             return f"{self.parent_category.category_name} → {self.category_name}"
         return self.category_name
@@ -182,6 +185,7 @@ class Account(models.Model):
         ordering = ['-created_date']
 
     def __str__(self):
+        """Возвращает строковое представление счета с балансом"""
         return f"{self.account_name} ({self.balance} {self.currency.currency_code})"
 
 
@@ -210,6 +214,7 @@ class Tag(models.Model):
         unique_together = ['user', 'tag_name']
 
     def __str__(self):
+        """Возвращает строковое представление тега"""
         return self.tag_name
 
 
@@ -273,6 +278,7 @@ class Transaction(models.Model):
         ordering = ['-transaction_date']
 
     def __str__(self):
+        """Возвращает строковое представление транзакции"""
         return f"{self.get_transaction_type_display()} {self.amount} - {self.transaction_date.strftime('%d.%m.%Y')}"
 
 
@@ -326,4 +332,5 @@ class Budget(models.Model):
         ordering = ['-start_date']
 
     def __str__(self):
+        """Возвращает строковое представление бюджета"""
         return f"{self.budget_name} - {self.amount} ({self.get_period_type_display()})"

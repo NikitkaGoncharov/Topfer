@@ -31,20 +31,24 @@ class UserAdmin(admin.ModelAdmin):
 
     @admin.display(description='Полное имя')
     def full_name(self, obj):
+        """Возвращает полное имя пользователя"""
         if obj.first_name or obj.last_name:
             return f"{obj.first_name} {obj.last_name}".strip()
         return '—'
 
     @admin.display(description='Кол-во счетов')
     def accounts_count(self, obj):
+        """Возвращает количество счетов пользователя"""
         return obj.accounts.count()
 
     @admin.display(description='Кол-во транзакций')
     def transactions_count(self, obj):
+        """Возвращает общее количество транзакций по всем счетам пользователя"""
         return sum(account.transactions.count() for account in obj.accounts.all())
 
     @admin.display(description='Общий баланс')
     def total_balance(self, obj):
+        """Возвращает общий баланс пользователя по всем валютам"""
         accounts = obj.accounts.select_related('currency').all()
         if not accounts:
             return '—'
@@ -66,6 +70,7 @@ class CurrencyAdmin(admin.ModelAdmin):
 
     @admin.display(description='Кол-во счетов')
     def accounts_count(self, obj):
+        """Возвращает количество счетов использующих данную валюту"""
         return obj.accounts.count()
 
 
@@ -102,6 +107,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
     @admin.display(description='Цвет')
     def color_preview(self, obj):
+        """Отображает превью цвета категории в виде квадрата"""
         if obj.color:
             return format_html(
                 '<div style="width: 20px; height: 20px; background-color: {}; border: 1px solid #ccc;"></div>',
@@ -111,10 +117,12 @@ class CategoryAdmin(admin.ModelAdmin):
 
     @admin.display(description='Кол-во транзакций')
     def transactions_count(self, obj):
+        """Возвращает количество транзакций в данной категории"""
         return obj.transactions.count()
 
     @admin.display(description='Кол-во бюджетов')
     def budgets_count(self, obj):
+        """Возвращает количество бюджетов привязанных к данной категории"""
         return obj.budgets.count()
 
 
@@ -158,10 +166,12 @@ class AccountAdmin(admin.ModelAdmin):
 
     @admin.display(description='Email пользователя', ordering='user__email')
     def user_email(self, obj):
+        """Возвращает email пользователя владельца счета"""
         return obj.user.email
 
     @admin.display(description='Баланс')
     def balance_display(self, obj):
+        """Отображает баланс счета с символом валюты"""
         return format_html(
             '<strong>{} {}</strong>',
             obj.balance,
@@ -170,15 +180,18 @@ class AccountAdmin(admin.ModelAdmin):
 
     @admin.display(description='Кол-во транзакций')
     def transactions_count(self, obj):
+        """Возвращает количество транзакций по данному счету"""
         return obj.transactions.count()
 
     @admin.display(description='Всего доходов')
     def total_income(self, obj):
+        """Возвращает сумму всех доходов по данному счету"""
         total = obj.transactions.filter(transaction_type='income').aggregate(Sum('amount'))['amount__sum'] or 0
         return f"{total} {obj.currency.currency_code}"
 
     @admin.display(description='Всего расходов')
     def total_expense(self, obj):
+        """Возвращает сумму всех расходов по данному счету"""
         total = obj.transactions.filter(transaction_type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
         return f"{total} {obj.currency.currency_code}"
 
@@ -194,10 +207,12 @@ class TagAdmin(admin.ModelAdmin):
 
     @admin.display(description='Email пользователя', ordering='user__email')
     def user_email(self, obj):
+        """Возвращает email пользователя владельца тега"""
         return obj.user.email
 
     @admin.display(description='Цвет')
     def color_preview(self, obj):
+        """Отображает превью цвета тега в виде квадрата"""
         if obj.color:
             return format_html(
                 '<div style="width: 20px; height: 20px; background-color: {}; border: 1px solid #ccc;"></div>',
@@ -207,6 +222,7 @@ class TagAdmin(admin.ModelAdmin):
 
     @admin.display(description='Кол-во транзакций')
     def transactions_count(self, obj):
+        """Возвращает количество транзакций отмеченных данным тегом"""
         return obj.transactions.count()
 
 
@@ -239,14 +255,17 @@ class TransactionAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID', ordering='id')
     def transaction_id(self, obj):
+        """Возвращает ID транзакции в формате #ID"""
         return f"#{obj.id}"
 
     @admin.display(description='Счет', ordering='account__account_name')
     def account_name(self, obj):
+        """Возвращает название счета транзакции"""
         return obj.account.account_name
 
     @admin.display(description='Сумма')
     def amount_display(self, obj):
+        """Отображает сумму транзакции с цветовым кодированием по типу"""
         color = 'green' if obj.transaction_type == 'income' else 'red' if obj.transaction_type == 'expense' else 'blue'
         return format_html(
             '<span style="color: {}; font-weight: bold;">{} {}</span>',
@@ -257,6 +276,7 @@ class TransactionAdmin(admin.ModelAdmin):
 
     @admin.display(description='Теги')
     def tags_list(self, obj):
+        """Возвращает список тегов транзакции (максимум 3 + счетчик остальных)"""
         tags = obj.tags.all()[:3]
         if not tags:
             return '—'
@@ -267,6 +287,7 @@ class TransactionAdmin(admin.ModelAdmin):
 
     @admin.display(description='Превью чека')
     def receipt_preview(self, obj):
+        """Отображает превью фотографии чека если она есть"""
         if obj.receipt_photo:
             return format_html(
                 '<img src="{}" style="max-width: 300px; max-height: 300px;" />',
@@ -285,12 +306,14 @@ class BudgetAdmin(admin.ModelAdmin):
     date_hierarchy = 'start_date'
 
     def get_readonly_fields(self, request, obj=None):
+        """Возвращает список полей только для чтения при редактировании бюджета"""
         # Показываем readonly поля только при редактировании (когда obj существует)
         if obj:
             return ['is_active', 'days_left']
         return []
 
     def get_fieldsets(self, request, obj=None):
+        """Возвращает структуру полей формы в зависимости от режима (создание/редактирование)"""
         # Показываем секцию "Статус" только при редактировании
         if obj:
             return (
@@ -317,10 +340,12 @@ class BudgetAdmin(admin.ModelAdmin):
 
     @admin.display(description='Email пользователя', ordering='user__email')
     def user_email(self, obj):
+        """Возвращает email пользователя владельца бюджета"""
         return obj.user.email
 
     @admin.display(description='Сумма')
     def amount_display(self, obj):
+        """Отображает сумму бюджета с валютой пользователя"""
         # Получаем валюту из первого счета пользователя или показываем просто сумму
         account = obj.user.accounts.first()
         currency = account.currency.currency_code if account else ''
@@ -332,6 +357,7 @@ class BudgetAdmin(admin.ModelAdmin):
 
     @admin.display(description='Активен', boolean=True)
     def is_active(self, obj):
+        """Проверяет активен ли бюджет на текущую дату"""
         from django.utils import timezone
         # Если бюджет еще не сохранен (создается), start_date может быть None
         if not obj.start_date:
@@ -343,6 +369,7 @@ class BudgetAdmin(admin.ModelAdmin):
 
     @admin.display(description='Дней осталось')
     def days_left(self, obj):
+        """Возвращает количество дней до окончания бюджета"""
         from django.utils import timezone
         # Если бюджет еще не сохранен, start_date может быть None
         if not obj.start_date:

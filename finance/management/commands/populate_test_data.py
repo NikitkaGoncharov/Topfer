@@ -6,9 +6,11 @@ from finance.models import User, Currency, Category, Account, Tag, Transaction, 
 
 
 class Command(BaseCommand):
+    """Команда для заполнения базы данных тестовыми данными"""
     help = 'Populate database with test data'
 
     def handle(self, *args, **kwargs):
+        """Основной метод выполнения команды - создает тестовые данные для всех моделей"""
         self.stdout.write('Creating test data...')
 
         # Создаем валюты
