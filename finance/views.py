@@ -1,8 +1,10 @@
 from django.shortcuts import render
+from django.http import JsonResponse
 from django.db.models import Sum, Count, Avg, Q
 from django.utils import timezone
 from datetime import timedelta
 from .models import User, Account, Transaction, Category, Budget, Tag
+from .services import BinanceService
 
 
 def index(request):
@@ -192,3 +194,26 @@ def search(request):
     }
 
     return render(request, 'finance/search.html', context)
+
+
+def get_crypto_data(request):
+    """
+    AJAX endpoint для получения данных о криптовалютах с Binance
+    Возвращает топ-5 криптовалют по объему торгов
+
+    Returns:
+        JsonResponse: JSON с данными о криптовалютах
+    """
+    try:
+        limit = int(request.GET.get('limit', 5))
+        cryptos = BinanceService.get_top_cryptos(limit=limit)
+
+        return JsonResponse({
+            'success': True,
+            'data': cryptos
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

@@ -118,10 +118,28 @@
 
     <!-- Правая колонка -->
     <div class="col-md-6">
+        <!-- Виджет: Топ криптовалют с Binance -->
+        <div class="widget">
+            <h5 class="widget-title">
+                <i class="bi bi-currency-bitcoin"></i> Топ криптовалют
+                <span class="badge bg-warning text-dark float-end" id="crypto-cache-badge">
+                    <i class="bi bi-arrow-clockwise"></i> Загрузка...
+                </span>
+            </h5>
+            <div id="crypto-container">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <p class="text-muted mt-2">Загрузка данных с Binance...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Виджет: Популярные счета -->
         <div class="widget">
             <h5 class="widget-title">
-                <i class="bi bi-star"></i> Популярные активы
+                <i class="bi bi-star"></i> Популярные счета
                 <a href="{% url 'finance:accounts' %}" class="btn btn-sm btn-outline-primary float-end">
                     Все счета <i class="bi bi-arrow-right"></i>
                 </a>
@@ -224,4 +242,125 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/**
+ * Загружает данные о криптовалютах с сервера через AJAX
+ * Использует кэширование на стороне сервера (5 минут)
+ */
+function loadCryptoData() {
+    fetch('{% url "finance:crypto_data" %}?limit=5')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderCryptoData(data.data);
+                updateCacheBadge(true);
+            } else {
+                showError('Ошибка загрузки данных');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            showError('Не удалось загрузить данные о криптовалютах');
+        });
+}
+
+/**
+ * Отображает данные о криптовалютах в таблице
+ * @param {Array} cryptos - Массив данных о криптовалютах
+ */
+function renderCryptoData(cryptos) {
+    const container = document.getElementById('crypto-container');
+
+    if (cryptos.length === 0) {
+        container.innerHTML = '<p class="text-muted">Нет данных</p>';
+        return;
+    }
+
+    let html = `
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Криптовалюта</th>
+                        <th class="text-end">Цена</th>
+                        <th class="text-end">Изменение 24ч</th>
+                        <th class="text-end">Объем 24ч</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    cryptos.forEach(crypto => {
+        const changeClass = crypto.change_24h >= 0 ? 'text-success' : 'text-danger';
+        const changeIcon = crypto.change_24h >= 0 ? '▲' : '▼';
+
+        html += `
+            <tr>
+                <td>
+                    <strong>${crypto.symbol}</strong>
+                    <br>
+                    <small class="text-muted">${crypto.name}</small>
+                </td>
+                <td class="text-end">
+                    <strong>${crypto.price_formatted}</strong>
+                </td>
+                <td class="text-end ${changeClass}">
+                    <strong>${changeIcon} ${Math.abs(crypto.change_24h).toFixed(2)}%</strong>
+                </td>
+                <td class="text-end">
+                    <small class="text-muted">${crypto.volume_formatted}</small>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+/**
+ * Показывает сообщение об ошибке в контейнере
+ * @param {string} message - Текст сообщения об ошибке
+ */
+function showError(message) {
+    const container = document.getElementById('crypto-container');
+    container.innerHTML = `
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle"></i> ${message}
+        </div>
+    `;
+    updateCacheBadge(false);
+}
+
+/**
+ * Обновляет бейдж статуса кэша
+ * @param {boolean} success - Успешность загрузки данных
+ */
+function updateCacheBadge(success) {
+    const badge = document.getElementById('crypto-cache-badge');
+    if (success) {
+        badge.innerHTML = '<i class="bi bi-check-circle"></i> Кэш (5 мин)';
+        badge.className = 'badge bg-success float-end';
+    } else {
+        badge.innerHTML = '<i class="bi bi-x-circle"></i> Ошибка';
+        badge.className = 'badge bg-danger float-end';
+    }
+}
+
+// Загружаем данные при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    loadCryptoData();
+
+    // Автообновление каждые 5 минут
+    setInterval(loadCryptoData, 5 * 60 * 1000);
+});
+</script>
 {% endblock %}
