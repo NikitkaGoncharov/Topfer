@@ -1,0 +1,66 @@
+{% extends 'finance/base.html' %}
+
+{% block title %}Поиск - Topfer{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Результаты поиска</h2>
+
+{% if query %}
+<div class="alert alert-info">
+    Поиск по запросу: <strong>"{{ query }}"</strong>
+    {% if results %}
+        - Найдено результатов: {{ results.count }}
+    {% endif %}
+</div>
+
+{% if results %}
+<div class="widget">
+    <h5 class="widget-title">Найденные транзакции</h5>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Категория</th>
+                    <th>Счет</th>
+                    <th>Описание</th>
+                    <th class="text-end">Сумма</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in results %}
+                <tr>
+                    <td>{{ transaction.transaction_date|date:"d.m.Y H:i" }}</td>
+                    <td>
+                        {% if transaction.category %}
+                            {{ transaction.category.category_name }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ transaction.account.account_name }}</td>
+                    <td>{{ transaction.description|truncatewords:10 }}</td>
+                    <td class="text-end">
+                        <span class="{% if transaction.transaction_type == 'income' %}income{% elif transaction.transaction_type == 'expense' %}expense{% else %}transfer{% endif %}">
+                            {% if transaction.transaction_type == 'income' %}+{% elif transaction.transaction_type == 'expense' %}-{% endif %}
+                            {{ transaction.amount|floatformat:2 }} {{ transaction.account.currency.symbol }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+    По вашему запросу ничего не найдено. Попробуйте изменить поисковый запрос.
+</div>
+{% endif %}
+
+{% else %}
+<div class="alert alert-secondary">
+    Введите поисковый запрос в строку поиска выше.
+</div>
+{% endif %}
+{% endblock %}
