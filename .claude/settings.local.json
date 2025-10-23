@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m django --version)",
+      "Bash(python -m django startproject finance_project .)",
+      "Bash(python manage.py startapp finance)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
