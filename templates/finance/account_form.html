@@ -1,0 +1,139 @@
+{% extends 'finance/base.html' %}
+
+{% block title %}{{ title }} - Topfer{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="widget">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0">{{ title }}</h4>
+                <a href="{% url 'finance:accounts' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Назад к счетам
+                </a>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.account_name.id_for_label }}" class="form-label">
+                            {{ form.account_name.label }}
+                        </label>
+                        {{ form.account_name }}
+                        {% if form.account_name.errors %}
+                            <div class="text-danger">
+                                {% for error in form.account_name.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.account_type.id_for_label }}" class="form-label">
+                            {{ form.account_type.label }}
+                        </label>
+                        {{ form.account_type }}
+                        {% if form.account_type.errors %}
+                            <div class="text-danger">
+                                {% for error in form.account_type.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.currency.id_for_label }}" class="form-label">
+                            {{ form.currency.label }}
+                        </label>
+                        {{ form.currency }}
+                        {% if form.currency.errors %}
+                            <div class="text-danger">
+                                {% for error in form.currency.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.balance.id_for_label }}" class="form-label">
+                            {{ form.balance.label }}
+                        </label>
+                        {{ form.balance }}
+                        {% if form.balance.errors %}
+                            <div class="text-danger">
+                                {% for error in form.balance.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Укажите текущий баланс счета</small>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="form-check">
+                        {{ form.bank_connected }}
+                        <label class="form-check-label" for="{{ form.bank_connected.id_for_label }}">
+                            {{ form.bank_connected.label }}
+                        </label>
+                    </div>
+                    {% if form.bank_connected.errors %}
+                        <div class="text-danger">
+                            {% for error in form.bank_connected.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <small class="form-text text-muted">Автоматическая синхронизация с банком (функция в разработке)</small>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i>
+                        {% if account %}Сохранить изменения{% else %}Создать счет{% endif %}
+                    </button>
+                    <a href="{% url 'finance:accounts' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Информационная панель -->
+        <div class="widget mt-3">
+            <h6 class="mb-3"><i class="bi bi-info-circle"></i> Справка</h6>
+            <div class="small text-muted">
+                <p><strong>Типы счетов:</strong></p>
+                <ul class="mb-0">
+                    <li><strong>Наличные</strong> - деньги в кошельке или дома</li>
+                    <li><strong>Банковская карта</strong> - дебетовая или кредитная карта</li>
+                    <li><strong>Банковский счет</strong> - текущий или сберегательный счет</li>
+                    <li><strong>Электронный кошелек</strong> - PayPal, WebMoney, QIWI и др.</li>
+                    <li><strong>Инвестиции</strong> - брокерский счет, ИИС</li>
+                    <li><strong>Криптовалюта</strong> - криптовалютный кошелек</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -4,38 +4,249 @@
 
 {% block page_title %}Счета{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Скрываем поиск на странице счетов */
+    .top-header form {
+        display: none !important;
+    }
+    .top-header .user-profile-icon {
+        margin-left: auto;
+    }
+
+    /* Стили карточек счетов */
+    .account-card {
+        transition: all 0.3s ease;
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .account-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.12) !important;
+    }
+    .account-card .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Баланс */
+    .balance-amount {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin: 0.5rem 0;
+    }
+
+    /* Иконки типов счетов */
+    .account-type-icon {
+        font-size: 1.3rem;
+        margin-right: 0.5rem;
+    }
+
+    /* Группы счетов */
+    .account-group-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    /* Статистика */
+    .stats-widget {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .stats-widget h5 {
+        color: white;
+        opacity: 0.9;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+    }
+    .stats-widget .stats-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    /* Кнопки */
+    .btn-action {
+        border-radius: 8px;
+        padding: 0.6rem 1.2rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Пустое состояние */
+    .empty-state {
+        padding: 4rem 2rem;
+    }
+    .empty-state i {
+        font-size: 5rem;
+        opacity: 0.3;
+    }
+
+    /* Дропдаун меню */
+    .dropdown-menu {
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* Widget контейнеры */
+    .widget {
+        border-radius: 12px;
+        border: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
-<div class="widget">
-    {% if accounts %}
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Название</th>
-                    <th>Тип</th>
-                    <th>Владелец</th>
-                    <th>Валюта</th>
-                    <th class="text-end">Баланс</th>
-                    <th>Дата создания</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for account in accounts %}
-                <tr>
-                    <td><strong>{{ account.account_name }}</strong></td>
-                    <td><span class="badge bg-secondary">{{ account.get_account_type_display }}</span></td>
-                    <td>{{ account.user.email }}</td>
-                    <td>{{ account.currency.currency_code }}</td>
-                    <td class="text-end"><strong>{{ account.balance|floatformat:2 }} {{ account.currency.symbol }}</strong></td>
-                    <td>{{ account.created_date|date:"d.m.Y" }}</td>
-                </tr>
+<div class="row">
+    <!-- Левая колонка: Список счетов -->
+    <div class="col-md-8">
+        <div class="widget">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0 fw-bold">Мои счета</h4>
+                <a href="{% url 'finance:account_add' %}" class="btn btn-primary btn-action">
+                    <i class="bi bi-plus-circle me-1"></i> Добавить счет
+                </a>
+            </div>
+
+            {% if user_accounts %}
+                <!-- Группировка по типам счетов -->
+                {% for acc_type, accounts in accounts_by_type.items %}
+                <div class="mb-4">
+                    <h6 class="account-group-title mb-3">
+                        <i class="bi bi-tag"></i> {{ acc_type }}
+                    </h6>
+                    <div class="row g-3">
+                        {% for account in accounts %}
+                        <div class="col-md-6">
+                            <div class="card shadow-sm account-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h5 class="card-title mb-0">
+                                                {% if account.account_type == 'cash' %}
+                                                    <i class="bi bi-cash-stack text-success"></i>
+                                                {% elif account.account_type == 'card' %}
+                                                    <i class="bi bi-credit-card text-primary"></i>
+                                                {% elif account.account_type == 'bank' %}
+                                                    <i class="bi bi-bank text-info"></i>
+                                                {% elif account.account_type == 'ewallet' %}
+                                                    <i class="bi bi-wallet2 text-warning"></i>
+                                                {% elif account.account_type == 'investment' %}
+                                                    <i class="bi bi-graph-up-arrow text-success"></i>
+                                                {% elif account.account_type == 'crypto' %}
+                                                    <i class="bi bi-currency-bitcoin text-warning"></i>
+                                                {% endif %}
+                                                {{ account.account_name }}
+                                            </h5>
+                                        </div>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-light" type="button" id="dropdownMenu{{ account.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenu{{ account.id }}">
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'finance:account_edit' account.pk %}">
+                                                        <i class="bi bi-pencil"></i> Редактировать
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="{% url 'finance:account_delete' account.pk %}">
+                                                        <i class="bi bi-trash"></i> Удалить
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <p class="text-muted small mb-2">
+                                        <i class="bi bi-currency-exchange"></i> {{ account.currency.currency_name }}
+                                    </p>
+                                    <h3 class="text-primary mb-2 balance-amount">
+                                        {{ account.balance|floatformat:2 }} {{ account.currency.symbol }}
+                                    </h3>
+                                    <div class="d-flex justify-content-between text-muted small">
+                                        <span>
+                                            {% if account.bank_connected %}
+                                                <i class="bi bi-bank text-success"></i> Подключен к банку
+                                            {% else %}
+                                                <i class="bi bi-wallet2"></i> Ручное управление
+                                            {% endif %}
+                                        </span>
+                                        <span>{{ account.created_date|date:"d.m.Y" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
                 {% endfor %}
-            </tbody>
-        </table>
+            {% else %}
+                <!-- Пустое состояние -->
+                <div class="empty-state text-center">
+                    <i class="bi bi-wallet2 text-muted"></i>
+                    <h5 class="mt-4 text-muted fw-bold">У вас пока нет счетов</h5>
+                    <p class="text-muted mb-4">Создайте свой первый счет, чтобы начать учет финансов</p>
+                    <a href="{% url 'finance:account_add' %}" class="btn btn-primary btn-lg btn-action">
+                        <i class="bi bi-plus-circle me-2"></i> Добавить первый счет
+                    </a>
+                </div>
+            {% endif %}
+        </div>
     </div>
-    {% else %}
-    <p class="text-muted">Нет счетов</p>
-    {% endif %}
+
+    <!-- Правая колонка: Статистика и действия -->
+    <div class="col-md-4">
+        <!-- Общая статистика -->
+        <div class="widget mb-3">
+            <h6 class="text-muted mb-3">Статистика</h6>
+            <div class="mb-3 pb-3 border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Всего счетов:</span>
+                    <strong class="fs-5">{{ accounts_count }}</strong>
+                </div>
+            </div>
+            <div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Общий баланс:</span>
+                    <strong class="fs-5 text-success">{{ total_balance|floatformat:2 }} ₽</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Быстрые действия -->
+        <div class="widget">
+            <h5 class="mb-3 fw-bold">Быстрые действия</h5>
+            <div class="d-grid gap-2">
+                <a href="{% url 'finance:account_add' %}" class="btn btn-primary btn-action">
+                    <i class="bi bi-plus-circle me-1"></i> Добавить счет
+                </a>
+                <button class="btn btn-outline-secondary btn-action" disabled>
+                    <i class="bi bi-arrow-repeat me-1"></i> Синхронизация с банком
+                </button>
+                <button class="btn btn-outline-secondary btn-action" disabled>
+                    <i class="bi bi-file-earmark-arrow-up me-1"></i> Импорт выписки
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
+
 {% endblock %}

@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import EmailValidator
 from django.utils import timezone
+from django.contrib.auth.models import User as DjangoUser
 
 
 class User(models.Model):
@@ -138,9 +139,9 @@ class Category(models.Model):
 class Account(models.Model):
     """Модель счета пользователя"""
     user = models.ForeignKey(
-        User,
+        DjangoUser,  # Использует встроенную модель User Django для аутентификации
         on_delete=models.CASCADE,
-        related_name='accounts',
+        related_name='finance_accounts',
         verbose_name='Пользователь'
     )
     account_name = models.CharField(
@@ -192,9 +193,9 @@ class Account(models.Model):
 class Tag(models.Model):
     """Модель тега для транзакций"""
     user = models.ForeignKey(
-        User,
+        DjangoUser,
         on_delete=models.CASCADE,
-        related_name='tags',
+        related_name='finance_tags',
         verbose_name='Пользователь'
     )
     tag_name = models.CharField(
@@ -285,9 +286,9 @@ class Transaction(models.Model):
 class Budget(models.Model):
     """Модель бюджета"""
     user = models.ForeignKey(
-        User,
+        DjangoUser,
         on_delete=models.CASCADE,
-        related_name='budgets',
+        related_name='finance_budgets',
         verbose_name='Пользователь'
     )
     budget_name = models.CharField(

@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.db.models import Sum, Count, Avg, Q
 from django.utils import timezone
@@ -8,7 +8,7 @@ from django.contrib import messages
 from datetime import timedelta
 from .models import User, Account, Transaction, Category, Budget, Tag
 from .services import BinanceService
-from .forms import UserRegistrationForm, UserLoginForm
+from .forms import UserRegistrationForm, UserLoginForm, AccountForm
 
 
 def index(request):
@@ -109,12 +109,28 @@ def index(request):
     return render(request, 'finance/index.html', context)
 
 
+@login_required
 def accounts(request):
-    """Страница со всеми счетами"""
-    all_accounts = Account.objects.all().select_related('currency', 'user').order_by('-created_date')
+    """
+    Страница со счетами текущего пользователя
+    Отображает все счета с группировкой по типам и общей статистикой
+    """
+    user_accounts = Account.objects.filter(user=request.user).select_related('currency').order_by('-created_date')
+
+    # Статистика по счетам
+    total_balance = user_accounts.aggregate(total=Sum('balance'))['total'] or 0
+    accounts_by_type = {}
+    for account in user_accounts:
+        acc_type = account.get_account_type_display()
+        if acc_type not in accounts_by_type:
+            accounts_by_type[acc_type] = []
+        accounts_by_type[acc_type].append(account)
 
     context = {
-        'accounts': all_accounts,
+        'user_accounts': user_accounts,
+        'accounts_by_type': accounts_by_type,
+        'total_balance': total_balance,
+        'accounts_count': user_accounts.count(),
     }
 
     return render(request, 'finance/accounts.html', context)
@@ -291,3 +307,57 @@ def user_logout(request):
     logout(request)
     messages.info(request, 'Вы успешно вышли из системы')
     return redirect('finance:index')
+
+
+@login_required
+def account_add(request):
+    """
+    Создание нового счета для текущего пользователя
+    """
+    if request.method == 'POST':
+        form = AccountForm(request.POST)
+        if form.is_valid():
+            account = form.save(commit=False)
+            account.user = request.user
+            account.save()
+            messages.success(request, f'Счет "{account.account_name}" успешно создан!')
+            return redirect('finance:accounts')
+    else:
+        form = AccountForm()
+
+    return render(request, 'finance/account_form.html', {'form': form, 'title': 'Добавить новый счет'})
+
+
+@login_required
+def account_edit(request, pk):
+    """
+    Редактирование существующего счета
+    """
+    account = get_object_or_404(Account, pk=pk, user=request.user)
+
+    if request.method == 'POST':
+        form = AccountForm(request.POST, instance=account)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Счет "{account.account_name}" успешно обновлен!')
+            return redirect('finance:accounts')
+    else:
+        form = AccountForm(instance=account)
+
+    return render(request, 'finance/account_form.html', {'form': form, 'title': 'Редактировать счет', 'account': account})
+
+
+@login_required
+def account_delete(request, pk):
+    """
+    Удаление счета пользователя
+    """
+    account = get_object_or_404(Account, pk=pk, user=request.user)
+
+    if request.method == 'POST':
+        account_name = account.account_name
+        account.delete()
+        messages.success(request, f'Счет "{account_name}" успешно удален!')
+        return redirect('finance:accounts')
+
+    return render(request, 'finance/account_confirm_delete.html', {'account': account})

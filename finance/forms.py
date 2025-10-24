@@ -1,9 +1,10 @@
 """
-Формы для аутентификации и регистрации пользователей
+Формы для аутентификации, регистрации пользователей и управления счетами
 """
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from .models import Account, Currency
 
 
 class UserRegistrationForm(UserCreationForm):
@@ -81,3 +82,64 @@ class UserLoginForm(AuthenticationForm):
         }),
         label='Пароль'
     )
+
+
+class AccountForm(forms.ModelForm):
+    """
+    Форма для создания и редактирования счета пользователя
+    """
+    account_name = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Например: Основной счет'
+        }),
+        label='Название счета'
+    )
+    account_type = forms.ChoiceField(
+        choices=Account._meta.get_field('account_type').choices,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Тип счета'
+    )
+    currency = forms.ModelChoiceField(
+        queryset=Currency.objects.all(),
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Валюта'
+    )
+    balance = forms.DecimalField(
+        initial=0,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '0.00',
+            'step': '0.01'
+        }),
+        label='Начальный баланс'
+    )
+    bank_connected = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        }),
+        label='Подключен к банку'
+    )
+
+    class Meta:
+        model = Account
+        fields = ['account_name', 'account_type', 'currency', 'balance', 'bank_connected']
+
+    def __init__(self, *args, **kwargs):
+        """
+        Инициализация формы
+        Устанавливает начальное значение валюты
+        """
+        super().__init__(*args, **kwargs)
+        # Устанавливаем рубль по умолчанию, если валюта существует
+        if not self.instance.pk:
+            try:
+                rub = Currency.objects.get(currency_code='RUB')
+                self.fields['currency'].initial = rub
+            except Currency.DoesNotExist:
+                pass

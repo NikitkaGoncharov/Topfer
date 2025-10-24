@@ -1,0 +1,63 @@
+{% extends 'finance/base.html' %}
+
+{% block title %}Удалить счет - Topfer{% endblock %}
+
+{% block page_title %}Удаление счета{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="widget">
+            <div class="text-center mb-4">
+                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Удалить счет?</h4>
+            </div>
+
+            <div class="alert alert-warning" role="alert">
+                <i class="bi bi-info-circle"></i> Вы уверены, что хотите удалить счет <strong>"{{ account.account_name }}"</strong>?
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-3 text-muted">Информация о счете:</h6>
+                    <div class="mb-2">
+                        <strong>Название:</strong> {{ account.account_name }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Тип:</strong> {{ account.get_account_type_display }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Валюта:</strong> {{ account.currency.currency_name }} ({{ account.currency.currency_code }})
+                    </div>
+                    <div class="mb-2">
+                        <strong>Текущий баланс:</strong>
+                        <span class="text-primary">{{ account.balance|floatformat:2 }} {{ account.currency.symbol }}</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Дата создания:</strong> {{ account.created_date|date:"d.m.Y H:i" }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <strong>Внимание!</strong> Это действие нельзя отменить. Все транзакции, связанные с этим счетом, также будут удалены.
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex gap-2 justify-content-between">
+                    <a href="{% url 'finance:accounts' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Отмена
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Да, удалить счет
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

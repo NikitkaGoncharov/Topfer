@@ -10,6 +10,9 @@ urlpatterns = [
 
     # Страницы разделов
     path('accounts/', views.accounts, name='accounts'),
+    path('accounts/add/', views.account_add, name='account_add'),
+    path('accounts/<int:pk>/edit/', views.account_edit, name='account_edit'),
+    path('accounts/<int:pk>/delete/', views.account_delete, name='account_delete'),
     path('transactions/', views.transactions, name='transactions'),
     path('investments/', views.investments, name='investments'),
     path('analytics/', views.analytics, name='analytics'),
