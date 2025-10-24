@@ -29,10 +29,10 @@
 <!-- Заголовок с кнопкой добавления -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0">
-        <i class="bi bi-list-ul"></i> Все транзакции
+        <i class="bi bi-list-ul"></i> <span class="d-none d-md-inline">Все транзакции</span><span class="d-md-none">Транзакции</span>
     </h5>
-    <a href="{% url 'finance:transaction_add' %}" class="btn btn-primary">
-        <i class="bi bi-plus-circle me-1"></i> Добавить транзакцию
+    <a href="{% url 'finance:transaction_add' %}" class="btn btn-primary btn-add-transaction">
+        <i class="bi bi-plus-circle me-1"></i> <span class="d-none d-md-inline">Добавить транзакцию</span><span class="d-md-none">Добавить</span>
     </a>
 </div>
 
@@ -128,11 +128,11 @@
                     </div>
                 </div>
                 <div class="d-flex gap-2 mt-2">
-                    <a href="{% url 'finance:transaction_edit' transaction.pk %}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-pencil"></i> Редактировать
+                    <a href="{% url 'finance:transaction_edit' transaction.pk %}" class="btn btn-sm btn-outline-primary flex-fill">
+                        <i class="bi bi-pencil"></i> <span class="d-inline">Изменить</span>
                     </a>
-                    <a href="{% url 'finance:transaction_delete' transaction.pk %}" class="btn btn-sm btn-outline-danger">
-                        <i class="bi bi-trash"></i> Удалить
+                    <a href="{% url 'finance:transaction_delete' transaction.pk %}" class="btn btn-sm btn-outline-danger flex-fill">
+                        <i class="bi bi-trash"></i> <span class="d-inline">Удалить</span>
                     </a>
                 </div>
             </div>
@@ -230,12 +230,94 @@
         max-width: 100%;
     }
 
+    /* Мобильная адаптация */
     @media (max-width: 767.98px) {
         .filter-panel {
             padding: 0.75rem;
         }
 
         .filter-panel .form-label {
+            font-size: 0.875rem;
+        }
+
+        /* Компактный заголовок на мобилке */
+        h5 {
+            font-size: 1rem;
+        }
+
+        /* Карточки транзакций на мобилке */
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-body {
+            padding: 0.75rem;
+        }
+
+        /* Компактные суммы */
+        .card-body h5 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        /* Компактные кнопки на мобилке */
+        .btn-sm {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        /* Адаптация кнопок действий */
+        .d-flex.gap-2 {
+            gap: 0.5rem !important;
+        }
+
+        /* Кнопка добавления транзакции */
+        .btn-add-transaction {
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            white-space: nowrap;
+        }
+
+        /* Кнопки в карточках на всю ширину */
+        .flex-fill {
+            flex: 1;
+            text-align: center;
+        }
+
+        /* Бейджи */
+        .badge {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Текст в карточках */
+        .small {
+            font-size: 0.8rem;
+        }
+
+        /* Отступы между карточками */
+        .card.mb-3 {
+            margin-bottom: 0.75rem !important;
+        }
+    }
+
+    /* Дополнительная адаптация для очень маленьких экранов */
+    @media (max-width: 375px) {
+        .btn-sm {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.5rem;
+        }
+
+        .btn-sm i {
+            margin-right: 0.2rem;
+        }
+
+        .card-body h5 {
+            font-size: 1rem;
+        }
+
+        .card-body h6 {
             font-size: 0.875rem;
         }
     }

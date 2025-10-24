@@ -7,50 +7,111 @@
 {% block content %}
 
 {% if query %}
-<div class="alert alert-info">
-    Поиск по запросу: <strong>"{{ query }}"</strong>
-    {% if results %}
-        - Найдено результатов: {{ results.count }}
-    {% endif %}
+<!-- Заголовок с информацией о поиске -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="alert alert-info mb-0 flex-grow-1 me-2">
+        Поиск: <strong>"{{ query }}"</strong>
+        {% if results %}
+            <span class="d-none d-md-inline">- Найдено:</span> <span class="badge bg-primary">{{ results.count }}</span>
+        {% endif %}
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'finance:index' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> <span class="d-none d-md-inline">Назад</span>
+        </a>
+        <a href="{% url 'finance:search' %}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-x-circle"></i> <span class="d-none d-md-inline">Сбросить</span>
+        </a>
+    </div>
 </div>
 
 {% if results %}
 <div class="widget">
     <h5 class="widget-title">Найденные транзакции</h5>
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Дата</th>
-                    <th>Категория</th>
-                    <th>Счет</th>
-                    <th>Описание</th>
-                    <th class="text-end">Сумма</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for transaction in results %}
-                <tr>
-                    <td>{{ transaction.transaction_date|date:"d.m.Y H:i" }}</td>
-                    <td>
-                        {% if transaction.category %}
-                            {{ transaction.category.category_name }}
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
-                    <td>{{ transaction.account.account_name }}</td>
-                    <td>{{ transaction.description|truncatewords:10 }}</td>
-                    <td class="text-end">
-                        <span class="{% if transaction.transaction_type == 'income' %}income{% elif transaction.transaction_type == 'expense' %}expense{% else %}transfer{% endif %}">
-                            {% if transaction.transaction_type == 'income' %}+{% elif transaction.transaction_type == 'expense' %}-{% endif %}
-                            {{ transaction.amount|floatformat:2 }} {{ transaction.account.currency.symbol }}
+
+    <!-- Мобильная версия (карточки) -->
+    <div class="d-md-none">
+        {% for transaction in results %}
+        <div class="card mb-3 border-start border-3 {% if transaction.transaction_type == 'income' %}border-success{% elif transaction.transaction_type == 'expense' %}border-danger{% else %}border-info{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% elif transaction.transaction_type == 'expense' %}bg-danger{% else %}bg-info{% endif %} mb-1">
+                            {{ transaction.get_transaction_type_display }}
                         </span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        <h6 class="mb-0">
+                            {% if transaction.category %}
+                                {% if transaction.category.icon %}{{ transaction.category.icon }} {% endif %}{{ transaction.category.category_name }}
+                            {% else %}
+                                Без категории
+                            {% endif %}
+                        </h6>
+                    </div>
+                    <h5 class="mb-0 {% if transaction.transaction_type == 'income' %}text-success{% elif transaction.transaction_type == 'expense' %}text-danger{% else %}text-info{% endif %}">
+                        {% if transaction.transaction_type == 'income' %}+{% elif transaction.transaction_type == 'expense' %}-{% endif %}{{ transaction.amount|floatformat:2 }} {{ transaction.account.currency.symbol }}
+                    </h5>
+                </div>
+                <div class="small text-muted">
+                    <div class="mb-1">
+                        <strong>Счет:</strong> {{ transaction.account.account_name }}
+                    </div>
+                    {% if transaction.description %}
+                    <div class="mb-1">
+                        <strong>Описание:</strong> {{ transaction.description }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <strong>Дата:</strong> {{ transaction.transaction_date|date:"d.m.Y H:i" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Десктопная версия (таблица) -->
+    <div class="d-none d-md-block">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Тип</th>
+                        <th>Категория</th>
+                        <th>Счет</th>
+                        <th>Описание</th>
+                        <th class="text-end">Сумма</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in results %}
+                    <tr>
+                        <td>{{ transaction.transaction_date|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% elif transaction.transaction_type == 'expense' %}bg-danger{% else %}bg-info{% endif %}">
+                                {{ transaction.get_transaction_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if transaction.category %}
+                                {% if transaction.category.icon %}{{ transaction.category.icon }} {% endif %}{{ transaction.category.category_name }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ transaction.account.account_name }}</td>
+                        <td>{{ transaction.description|truncatewords:10 }}</td>
+                        <td class="text-end">
+                            <span class="{% if transaction.transaction_type == 'income' %}income{% elif transaction.transaction_type == 'expense' %}expense{% else %}transfer{% endif %}">
+                                {% if transaction.transaction_type == 'income' %}+{% elif transaction.transaction_type == 'expense' %}-{% endif %}
+                                {{ transaction.amount|floatformat:2 }} {{ transaction.account.currency.symbol }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% else %}
@@ -64,4 +125,109 @@
     Введите поисковый запрос в строку поиска выше.
 </div>
 {% endif %}
+
+<style>
+    /* Стили для результатов поиска */
+    .alert-info {
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
+
+    .badge.bg-primary {
+        font-size: 0.875rem;
+        padding: 0.35rem 0.6rem;
+    }
+
+    /* Мобильная адаптация */
+    @media (max-width: 767.98px) {
+        /* Компактный заголовок */
+        .alert-info {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        /* Кнопки управления */
+        .btn-sm {
+            padding: 0.35rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .btn-sm i {
+            font-size: 0.9rem;
+        }
+
+        /* Карточки транзакций */
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-body {
+            padding: 0.75rem;
+        }
+
+        .card-body h5 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .card-body h6 {
+            font-size: 0.9rem;
+        }
+
+        /* Бейджи */
+        .badge {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Текст в карточках */
+        .small {
+            font-size: 0.8rem;
+        }
+
+        /* Отступы между карточками */
+        .card.mb-3 {
+            margin-bottom: 0.75rem !important;
+        }
+
+        /* Заголовок виджета */
+        .widget-title {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Адаптация контейнера с кнопками */
+        .d-flex.gap-2 {
+            gap: 0.4rem !important;
+        }
+
+        /* Алерты */
+        .alert-warning,
+        .alert-secondary {
+            padding: 0.75rem;
+            font-size: 0.875rem;
+        }
+    }
+
+    /* Дополнительная адаптация для очень маленьких экранов */
+    @media (max-width: 375px) {
+        .alert-info {
+            font-size: 0.8rem;
+        }
+
+        .card-body h5 {
+            font-size: 1rem;
+        }
+
+        .card-body h6 {
+            font-size: 0.85rem;
+        }
+
+        .btn-sm {
+            padding: 0.3rem 0.4rem;
+            font-size: 0.75rem;
+        }
+    }
+</style>
 {% endblock %}
