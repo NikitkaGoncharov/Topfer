@@ -17,6 +17,12 @@ urlpatterns = [
     path('investments/', views.investments, name='investments'),
     path('analytics/', views.analytics, name='analytics'),
 
+    # Бюджеты
+    path('budgets/', views.budgets, name='budgets'),
+    path('budgets/add/', views.budget_add, name='budget_add'),
+    path('budgets/<int:pk>/edit/', views.budget_edit, name='budget_edit'),
+    path('budgets/<int:pk>/delete/', views.budget_delete, name='budget_delete'),
+
     # Поиск
     path('search/', views.search, name='search'),
 

@@ -8,7 +8,7 @@ from django.contrib import messages
 from datetime import timedelta
 from .models import User, Account, Transaction, Category, Budget, Tag
 from .services import BinanceService
-from .forms import UserRegistrationForm, UserLoginForm, AccountForm
+from .forms import UserRegistrationForm, UserLoginForm, AccountForm, BudgetForm
 
 
 def index(request):
@@ -361,3 +361,74 @@ def account_delete(request, pk):
         return redirect('finance:accounts')
 
     return render(request, 'finance/account_confirm_delete.html', {'account': account})
+
+
+# ==================== БЮДЖЕТЫ ====================
+
+@login_required
+def budgets(request):
+    """
+    Страница списка всех бюджетов пользователя
+    """
+    user_budgets = Budget.objects.filter(user=request.user).order_by('-start_date')
+
+    context = {
+        'budgets': user_budgets,
+        'budgets_count': user_budgets.count()
+    }
+
+    return render(request, 'finance/budgets.html', context)
+
+
+@login_required
+def budget_add(request):
+    """
+    Создание нового бюджета для текущего пользователя
+    """
+    if request.method == 'POST':
+        form = BudgetForm(request.POST, user=request.user)
+        if form.is_valid():
+            budget = form.save(commit=False)
+            budget.user = request.user
+            budget.save()
+            messages.success(request, f'Бюджет "{budget.budget_name}" успешно создан!')
+            return redirect('finance:index')
+    else:
+        form = BudgetForm(user=request.user)
+
+    return render(request, 'finance/budget_form.html', {'form': form, 'title': 'Добавить новый бюджет'})
+
+
+@login_required
+def budget_edit(request, pk):
+    """
+    Редактирование существующего бюджета
+    """
+    budget = get_object_or_404(Budget, pk=pk, user=request.user)
+
+    if request.method == 'POST':
+        form = BudgetForm(request.POST, instance=budget, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Бюджет "{budget.budget_name}" успешно обновлен!')
+            return redirect('finance:index')
+    else:
+        form = BudgetForm(instance=budget, user=request.user)
+
+    return render(request, 'finance/budget_form.html', {'form': form, 'title': 'Редактировать бюджет', 'budget': budget})
+
+
+@login_required
+def budget_delete(request, pk):
+    """
+    Удаление бюджета пользователя
+    """
+    budget = get_object_or_404(Budget, pk=pk, user=request.user)
+
+    if request.method == 'POST':
+        budget_name = budget.budget_name
+        budget.delete()
+        messages.success(request, f'Бюджет "{budget_name}" успешно удален!')
+        return redirect('finance:index')
+
+    return render(request, 'finance/budget_confirm_delete.html', {'budget': budget})

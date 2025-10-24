@@ -1,0 +1,62 @@
+{% extends 'finance/base.html' %}
+
+{% block title %}Удалить бюджет - Topfer{% endblock %}
+
+{% block page_title %}Удаление бюджета{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="widget">
+            <div class="text-center mb-4">
+                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Удалить бюджет?</h4>
+            </div>
+
+            <div class="alert alert-warning" role="alert">
+                <i class="bi bi-info-circle"></i> Вы уверены, что хотите удалить бюджет <strong>"{{ budget.budget_name }}"</strong>?
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-3 text-muted">Информация о бюджете:</h6>
+                    <div class="mb-2">
+                        <strong>Название:</strong> {{ budget.budget_name }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Сумма:</strong> {{ budget.amount|floatformat:2 }} ₽
+                    </div>
+                    <div class="mb-2">
+                        <strong>Период:</strong> {{ budget.get_period_type_display }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Категория:</strong> {% if budget.category %}{{ budget.category.category_name }}{% else %}Общий бюджет{% endif %}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Период действия:</strong> {{ budget.start_date|date:"d.m.Y" }} - {% if budget.end_date %}{{ budget.end_date|date:"d.m.Y" }}{% else %}Бессрочно{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <strong>Внимание!</strong> Это действие нельзя отменить.
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex gap-2 justify-content-between">
+                    <a href="{% url 'finance:index' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Отмена
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Да, удалить бюджет
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
