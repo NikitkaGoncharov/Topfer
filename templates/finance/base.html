@@ -14,6 +14,40 @@
         body {
             background-color: #f8f9fa;
         }
+
+        /* Бургер-кнопка */
+        .burger-btn {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1100;
+            background: #007bff;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+            display: none;
+        }
+        .burger-btn i {
+            color: white;
+            font-size: 20px;
+        }
+
+        /* Overlay для закрытия сайдбара при клике вне его */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            display: none;
+        }
+        .sidebar-overlay.show {
+            display: block;
+        }
+
         .sidebar {
             position: fixed;
             top: 0;
@@ -23,6 +57,8 @@
             background-color: #343a40;
             padding-top: 20px;
             overflow-y: auto;
+            z-index: 1050;
+            transition: transform 0.3s ease;
         }
         .sidebar .nav-link {
             color: #ffffff;
@@ -37,6 +73,52 @@
         }
         .main-content {
             margin-left: 250px;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Мобильный поиск */
+        .mobile-search-box {
+            display: none;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Мобильные стили */
+        @media (max-width: 768px) {
+            .burger-btn {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .top-header {
+                margin-top: 45px;
+                padding-right: 50px !important;
+            }
+
+            /* Скрываем поиск и иконку пользователя в шапке на мобильных */
+            .top-header form,
+            .top-header .user-profile-icon {
+                display: none !important;
+            }
+
+            /* Показываем мобильный поиск только на нужных страницах */
+            .mobile-search-box.show {
+                display: block;
+            }
         }
         .widget {
             background: white;
@@ -119,8 +201,16 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
+    <!-- Бургер-кнопка для мобильных -->
+    <button class="burger-btn" id="burgerBtn">
+        <i class="bi bi-list"></i>
+    </button>
+
+    <!-- Overlay для закрытия сайдбара -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Sidebar -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <div class="brand-title">Topfer</div>
 
         <ul class="nav flex-column">
@@ -178,10 +268,11 @@
     <!-- Main Content -->
     <div class="main-content">
         <div class="container-fluid py-4">
-            <!-- Top Header with Page Title, Search and User Icon -->
+            <!-- Top Header with Page Title and Search (desktop) -->
             <div class="top-header d-flex align-items-center justify-content-between">
                 <h2 class="mb-0">{% block page_title %}Мои финансы{% endblock %}</h2>
 
+                {% if request.resolver_match.url_name == 'index' or request.resolver_match.url_name == 'transactions' %}
                 <div class="d-flex align-items-center flex-grow-1 mx-4">
                     <form action="{% url 'finance:search' %}" method="get" class="d-flex w-100">
                         <input class="form-control me-2" type="search" name="q" placeholder="Поиск транзакций..." aria-label="Search" value="{{ query }}" style="max-width: 500px;">
@@ -190,11 +281,20 @@
                         </button>
                     </form>
                 </div>
-
-                <div class="user-profile-icon" title="{% if user.is_authenticated %}{{ user.username }}{% else %}Гость{% endif %}">
-                    <i class="bi bi-person"></i>
-                </div>
+                {% endif %}
             </div>
+
+            <!-- Мобильный поиск (показывается только на главной и транзакциях) -->
+            {% if request.resolver_match.url_name == 'index' or request.resolver_match.url_name == 'transactions' %}
+            <div class="mobile-search-box show">
+                <form action="{% url 'finance:search' %}" method="get" class="d-flex">
+                    <input class="form-control me-2" type="search" name="q" placeholder="Поиск транзакций..." aria-label="Search" value="{{ query }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
 
             <!-- Messages -->
             {% if messages %}
@@ -214,6 +314,36 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Скрипт для бургер-меню -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const burgerBtn = document.getElementById('burgerBtn');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            // Открытие/закрытие сайдбара
+            function toggleSidebar() {
+                sidebar.classList.toggle('show');
+                overlay.classList.toggle('show');
+            }
+
+            // Клик по бургеру
+            burgerBtn.addEventListener('click', toggleSidebar);
+
+            // Клик по overlay (закрытие)
+            overlay.addEventListener('click', toggleSidebar);
+
+            // Закрытие при клике на ссылку в меню (на мобильных)
+            if (window.innerWidth <= 768) {
+                const navLinks = sidebar.querySelectorAll('.nav-link');
+                navLinks.forEach(link => {
+                    link.addEventListener('click', toggleSidebar);
+                });
+            }
+        });
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

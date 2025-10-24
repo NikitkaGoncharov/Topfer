@@ -4,16 +4,72 @@
 
 {% block page_title %}Аналитика{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Адаптация для мобильных устройств */
+    @media (max-width: 767.98px) {
+        /* Компактные заголовки */
+        .widget-title {
+            font-size: 1rem !important;
+        }
+
+        /* Компактные таблицы */
+        .table {
+            font-size: 0.875rem;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.5rem !important;
+        }
+
+        /* Скрываем колонку "Транзакций" на мобильных для экономии места */
+        .table .transactions-col {
+            display: none;
+        }
+
+        /* Адаптивные карточки категорий на мобильных */
+        .category-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .category-card:last-child {
+            border-bottom: none;
+        }
+
+        .category-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .category-amount {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .category-count {
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-12 col-md-6 mb-4 mb-md-0">
         <div class="widget">
             <h5 class="widget-title text-danger">
                 <i class="bi bi-arrow-down-circle"></i> Расходы по категориям
             </h5>
             {% if expense_by_category %}
-            <div class="table-responsive">
+            <!-- Десктопная версия (таблица) -->
+            <div class="d-none d-md-block table-responsive">
                 <table class="table table-sm">
                     <thead>
                         <tr>
@@ -36,19 +92,37 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Мобильная версия (карточки) -->
+            <div class="d-md-none">
+                {% for category in expense_by_category %}
+                <div class="category-card">
+                    <div>
+                        <div class="category-name">
+                            {% if category.icon %}{{ category.icon }} {% endif %}{{ category.category_name }}
+                        </div>
+                        <div class="category-count">{{ category.count }} транзакций</div>
+                    </div>
+                    <div class="category-amount text-danger">
+                        {{ category.total_amount|default:0|floatformat:2 }} ₽
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
             {% else %}
             <p class="text-muted">Нет данных</p>
             {% endif %}
         </div>
     </div>
 
-    <div class="col-md-6">
+    <div class="col-12 col-md-6">
         <div class="widget">
             <h5 class="widget-title text-success">
                 <i class="bi bi-arrow-up-circle"></i> Доходы по категориям
             </h5>
             {% if income_by_category %}
-            <div class="table-responsive">
+            <!-- Десктопная версия (таблица) -->
+            <div class="d-none d-md-block table-responsive">
                 <table class="table table-sm">
                     <thead>
                         <tr>
@@ -70,6 +144,23 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Мобильная версия (карточки) -->
+            <div class="d-md-none">
+                {% for category in income_by_category %}
+                <div class="category-card">
+                    <div>
+                        <div class="category-name">
+                            {% if category.icon %}{{ category.icon }} {% endif %}{{ category.category_name }}
+                        </div>
+                        <div class="category-count">{{ category.count }} транзакций</div>
+                    </div>
+                    <div class="category-amount text-success">
+                        {{ category.total_amount|default:0|floatformat:2 }} ₽
+                    </div>
+                </div>
+                {% endfor %}
             </div>
             {% else %}
             <p class="text-muted">Нет данных</p>

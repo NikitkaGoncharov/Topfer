@@ -8,45 +8,88 @@
 
 <div class="widget">
     {% if transactions %}
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Дата</th>
-                    <th>Тип</th>
-                    <th>Категория</th>
-                    <th>Счет</th>
-                    <th>Описание</th>
-                    <th class="text-end">Сумма</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for transaction in transactions %}
-                <tr>
-                    <td>{{ transaction.transaction_date|date:"d.m.Y H:i" }}</td>
-                    <td>
-                        <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% elif transaction.transaction_type == 'expense' %}bg-danger{% else %}bg-info{% endif %}">
+    <!-- Мобильная версия (карточки) - показывается на экранах меньше 768px -->
+    <div class="d-md-none">
+        {% for transaction in transactions %}
+        <div class="card mb-3 border-start border-3 {% if transaction.transaction_type == 'income' %}border-success{% elif transaction.transaction_type == 'expense' %}border-danger{% else %}border-info{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% elif transaction.transaction_type == 'expense' %}bg-danger{% else %}bg-info{% endif %} mb-1">
                             {{ transaction.get_transaction_type_display }}
                         </span>
-                    </td>
-                    <td>
-                        {% if transaction.category %}
-                            {% if transaction.category.icon %}{{ transaction.category.icon }}{% endif %}
-                            {{ transaction.category.category_name }}
-                        {% else %}-{% endif %}
-                    </td>
-                    <td>{{ transaction.account.account_name }}</td>
-                    <td>{{ transaction.description|truncatewords:5 }}</td>
-                    <td class="text-end">
-                        <strong class="{% if transaction.transaction_type == 'income' %}income{% elif transaction.transaction_type == 'expense' %}expense{% else %}transfer{% endif %}">
-                            {% if transaction.transaction_type == 'income' %}+{% elif transaction.transaction_type == 'expense' %}-{% endif %}
-                            {{ transaction.amount|floatformat:2 }} {{ transaction.account.currency.symbol }}
-                        </strong>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        <h6 class="mb-0">
+                            {% if transaction.category %}
+                                {% if transaction.category.icon %}{{ transaction.category.icon }} {% endif %}{{ transaction.category.category_name }}
+                            {% else %}
+                                Без категории
+                            {% endif %}
+                        </h6>
+                    </div>
+                    <h5 class="mb-0 {% if transaction.transaction_type == 'income' %}text-success{% elif transaction.transaction_type == 'expense' %}text-danger{% else %}text-info{% endif %}">
+                        {% if transaction.transaction_type == 'income' %}+{% elif transaction.transaction_type == 'expense' %}-{% endif %}{{ transaction.amount|floatformat:2 }} {{ transaction.account.currency.symbol }}
+                    </h5>
+                </div>
+                <div class="small text-muted">
+                    <div class="mb-1">
+                        <strong>Счет:</strong> {{ transaction.account.account_name }}
+                    </div>
+                    {% if transaction.description %}
+                    <div class="mb-1">
+                        <strong>Описание:</strong> {{ transaction.description }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <strong>Дата:</strong> {{ transaction.transaction_date|date:"d.m.Y H:i" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Десктопная версия (таблица) - показывается на экранах от 768px -->
+    <div class="d-none d-md-block">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Тип</th>
+                        <th>Категория</th>
+                        <th>Счет</th>
+                        <th>Описание</th>
+                        <th class="text-end">Сумма</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ transaction.transaction_date|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% elif transaction.transaction_type == 'expense' %}bg-danger{% else %}bg-info{% endif %}">
+                                {{ transaction.get_transaction_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if transaction.category %}
+                                {% if transaction.category.icon %}{{ transaction.category.icon }}{% endif %}
+                                {{ transaction.category.category_name }}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td>{{ transaction.account.account_name }}</td>
+                        <td>{{ transaction.description|truncatewords:5 }}</td>
+                        <td class="text-end">
+                            <strong class="{% if transaction.transaction_type == 'income' %}income{% elif transaction.transaction_type == 'expense' %}expense{% else %}transfer{% endif %}">
+                                {% if transaction.transaction_type == 'income' %}+{% elif transaction.transaction_type == 'expense' %}-{% endif %}
+                                {{ transaction.amount|floatformat:2 }} {{ transaction.account.currency.symbol }}
+                            </strong>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
     {% else %}
     <p class="text-muted">Нет транзакций</p>

@@ -109,19 +109,110 @@
         border-radius: 12px;
         border: none;
     }
+
+    /* Адаптация для мобильных устройств */
+    @media (max-width: 767.98px) {
+        /* Уменьшаем размер баланса на мобильных */
+        .balance-amount {
+            font-size: 1.5rem;
+        }
+
+        /* Уменьшаем отступы карточек на мобильных */
+        .account-card .card-body {
+            padding: 1rem;
+        }
+
+        /* Компактный заголовок на мобильных */
+        .account-card .card-title {
+            font-size: 1rem;
+        }
+
+        /* Убираем анимацию hover на мобильных */
+        .account-card:hover {
+            transform: none;
+        }
+
+        /* Компактная кнопка на мобильных */
+        .btn-action {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Уменьшаем заголовок страницы */
+        h4.fw-bold {
+            font-size: 1.25rem;
+        }
+
+        /* Компактная статистика на мобильных */
+        .widget {
+            padding: 1rem;
+        }
+
+        /* Уменьшаем пустое состояние на мобильных */
+        .empty-state {
+            padding: 2rem 1rem;
+        }
+        .empty-state i {
+            font-size: 3rem;
+        }
+    }
+
+    /* Адаптация для планшетов */
+    @media (min-width: 768px) and (max-width: 991.98px) {
+        .balance-amount {
+            font-size: 1.75rem;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 
 <div class="row">
+    <!-- Правая колонка: Статистика и действия - на мобильных показывается первой -->
+    <div class="col-md-4 order-md-2 mb-4">
+        <!-- Общая статистика -->
+        <div class="widget mb-3">
+            <h6 class="text-muted mb-3">Статистика</h6>
+            <div class="mb-3 pb-3 border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Всего счетов:</span>
+                    <strong class="fs-5">{{ accounts_count }}</strong>
+                </div>
+            </div>
+            <div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Общий баланс:</span>
+                    <strong class="fs-5 text-success">{{ total_balance|floatformat:2 }} ₽</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Быстрые действия -->
+        <div class="widget d-none d-md-block">
+            <h5 class="mb-3 fw-bold">Быстрые действия</h5>
+            <div class="d-grid gap-2">
+                <a href="{% url 'finance:account_add' %}" class="btn btn-primary btn-action">
+                    <i class="bi bi-plus-circle me-1"></i> Добавить счет
+                </a>
+                <button class="btn btn-outline-secondary btn-action" disabled>
+                    <i class="bi bi-arrow-repeat me-1"></i> Синхронизация с банком
+                </button>
+                <button class="btn btn-outline-secondary btn-action" disabled>
+                    <i class="bi bi-file-earmark-arrow-up me-1"></i> Импорт выписки
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Левая колонка: Список счетов -->
-    <div class="col-md-8">
+    <div class="col-md-8 order-md-1">
         <div class="widget">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="mb-0 fw-bold">Мои счета</h4>
                 <a href="{% url 'finance:account_add' %}" class="btn btn-primary btn-action">
-                    <i class="bi bi-plus-circle me-1"></i> Добавить счет
+                    <i class="bi bi-plus-circle me-1"></i>
+                    <span class="d-none d-sm-inline">Добавить счет</span>
                 </a>
             </div>
 
@@ -134,11 +225,11 @@
                     </h6>
                     <div class="row g-3">
                         {% for account in accounts %}
-                        <div class="col-md-6">
+                        <div class="col-12 col-lg-6">
                             <div class="card shadow-sm account-card">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div>
+                                        <div class="flex-grow-1 me-2">
                                             <h5 class="card-title mb-0">
                                                 {% if account.account_type == 'cash' %}
                                                     <i class="bi bi-cash-stack text-success"></i>
@@ -209,42 +300,6 @@
                     </a>
                 </div>
             {% endif %}
-        </div>
-    </div>
-
-    <!-- Правая колонка: Статистика и действия -->
-    <div class="col-md-4">
-        <!-- Общая статистика -->
-        <div class="widget mb-3">
-            <h6 class="text-muted mb-3">Статистика</h6>
-            <div class="mb-3 pb-3 border-bottom">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted">Всего счетов:</span>
-                    <strong class="fs-5">{{ accounts_count }}</strong>
-                </div>
-            </div>
-            <div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted">Общий баланс:</span>
-                    <strong class="fs-5 text-success">{{ total_balance|floatformat:2 }} ₽</strong>
-                </div>
-            </div>
-        </div>
-
-        <!-- Быстрые действия -->
-        <div class="widget">
-            <h5 class="mb-3 fw-bold">Быстрые действия</h5>
-            <div class="d-grid gap-2">
-                <a href="{% url 'finance:account_add' %}" class="btn btn-primary btn-action">
-                    <i class="bi bi-plus-circle me-1"></i> Добавить счет
-                </a>
-                <button class="btn btn-outline-secondary btn-action" disabled>
-                    <i class="bi bi-arrow-repeat me-1"></i> Синхронизация с банком
-                </button>
-                <button class="btn btn-outline-secondary btn-action" disabled>
-                    <i class="bi bi-file-earmark-arrow-up me-1"></i> Импорт выписки
-                </button>
-            </div>
         </div>
     </div>
 </div>

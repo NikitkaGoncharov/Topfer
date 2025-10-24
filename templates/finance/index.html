@@ -4,25 +4,117 @@
 
 {% block page_title %}Финансовый обзор{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Адаптация для мобильных устройств */
+    @media (max-width: 767.98px) {
+        /* Компактные статистические карточки */
+        .stat-card {
+            padding: 1rem !important;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card h3 {
+            font-size: 1.5rem !important;
+        }
+
+        .stat-card p {
+            font-size: 0.875rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+
+        .stat-card small {
+            font-size: 0.75rem !important;
+        }
+
+        /* Компактные заголовки виджетов */
+        .widget-title {
+            font-size: 1rem !important;
+        }
+
+        .widget-title .btn {
+            font-size: 0.75rem !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+
+        /* Компактные таблицы */
+        .table {
+            font-size: 0.875rem;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.5rem !important;
+        }
+
+        /* Список транзакций */
+        .list-group-item {
+            padding: 0.75rem !important;
+        }
+
+        .list-group-item h6 {
+            font-size: 0.9rem !important;
+        }
+
+        .list-group-item small {
+            font-size: 0.75rem !important;
+        }
+
+        /* Общая статистика внизу */
+        .row.text-center h2 {
+            font-size: 1.75rem !important;
+        }
+
+        .row.text-center .col-md-3 {
+            margin-bottom: 1rem;
+        }
+
+        /* Карточки криптовалют */
+        .crypto-card {
+            background: #f8f9fa;
+        }
+
+        .crypto-card h6 {
+            font-size: 1rem;
+        }
+
+        .crypto-card strong {
+            font-size: 0.95rem;
+        }
+
+        .crypto-card small {
+            font-size: 0.75rem;
+        }
+    }
+
+    /* Адаптация для планшетов */
+    @media (min-width: 768px) and (max-width: 991.98px) {
+        .stat-card h3 {
+            font-size: 1.75rem !important;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 <!-- Статистические карточки -->
 <div class="row mb-4">
-    <div class="col-md-4">
+    <div class="col-12 col-md-4 mb-3 mb-md-0">
         <div class="stat-card">
             <p>Общая сумма</p>
             <h3>{{ total_balance|floatformat:2 }} ₽</h3>
             <small>на всех счетах</small>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-12 col-md-4 mb-3 mb-md-0">
         <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
             <p>Доход за месяц</p>
             <h3>{{ monthly_income|floatformat:2 }} ₽</h3>
             <small>за последние 30 дней</small>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
         <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
             <p>Расход за месяц</p>
             <h3>{{ monthly_expense|floatformat:2 }} ₽</h3>
@@ -33,7 +125,7 @@
 
 <div class="row">
     <!-- Левая колонка -->
-    <div class="col-md-6">
+    <div class="col-12 col-md-6 mb-4 mb-md-0">
         <!-- Виджет: Топ категорий расходов -->
         <div class="widget">
             <h5 class="widget-title">
@@ -117,7 +209,7 @@
     </div>
 
     <!-- Правая колонка -->
-    <div class="col-md-6">
+    <div class="col-12 col-md-6">
         <!-- Виджет: Топ криптовалют с Binance -->
         <div class="widget">
             <h5 class="widget-title">
@@ -134,48 +226,6 @@
                     <p class="text-muted mt-2">Загрузка данных с Binance...</p>
                 </div>
             </div>
-        </div>
-
-        <!-- Виджет: Популярные счета -->
-        <div class="widget">
-            <h5 class="widget-title">
-                <i class="bi bi-star"></i> Популярные счета
-                <a href="{% url 'finance:accounts' %}" class="btn btn-sm btn-outline-primary float-end">
-                    Все счета <i class="bi bi-arrow-right"></i>
-                </a>
-            </h5>
-            {% if popular_accounts %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Название</th>
-                            <th>Тип</th>
-                            <th class="text-end">Баланс</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for account in popular_accounts %}
-                        <tr>
-                            <td>
-                                <strong>{{ account.account_name }}</strong>
-                                <br>
-                                <small class="text-muted">{{ account.user.email }}</small>
-                            </td>
-                            <td>
-                                <span class="badge bg-secondary">{{ account.get_account_type_display }}</span>
-                            </td>
-                            <td class="text-end">
-                                <strong>{{ account.balance|floatformat:2 }} {{ account.currency.symbol }}</strong>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="text-muted">Нет счетов</p>
-            {% endif %}
         </div>
 
         <!-- Виджет: Активные бюджеты -->
@@ -216,25 +266,25 @@
 
 <!-- Дополнительная статистика -->
 <div class="row mt-4">
-    <div class="col-md-12">
+    <div class="col-12">
         <div class="widget">
             <h5 class="widget-title">
                 <i class="bi bi-info-circle"></i> Общая статистика
             </h5>
             <div class="row text-center">
-                <div class="col-md-3">
+                <div class="col-6 col-md-3">
                     <h2 class="text-primary">{{ accounts_count }}</h2>
                     <p class="text-muted">Всего счетов</p>
                 </div>
-                <div class="col-md-3">
+                <div class="col-6 col-md-3">
                     <h2 class="text-success">{{ transactions_count }}</h2>
                     <p class="text-muted">Всего транзакций</p>
                 </div>
-                <div class="col-md-3">
+                <div class="col-6 col-md-3">
                     <h2 class="text-info">{{ top_expense_categories.count }}</h2>
                     <p class="text-muted">Категорий расходов</p>
                 </div>
-                <div class="col-md-3">
+                <div class="col-6 col-md-3">
                     <h2 class="text-warning">{{ active_budgets.count }}</h2>
                     <p class="text-muted">Активных бюджетов</p>
                 </div>
@@ -268,7 +318,7 @@ function loadCryptoData() {
 }
 
 /**
- * Отображает данные о криптовалютах в таблице
+ * Отображает данные о криптовалютах (таблица для десктопа, карточки для мобильных)
  * @param {Array} cryptos - Массив данных о криптовалютах
  */
 function renderCryptoData(cryptos) {
@@ -279,8 +329,9 @@ function renderCryptoData(cryptos) {
         return;
     }
 
-    let html = `
-        <div class="table-responsive">
+    // Десктопная версия (таблица)
+    let desktopHtml = `
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover">
                 <thead>
                     <tr>
@@ -297,7 +348,7 @@ function renderCryptoData(cryptos) {
         const changeClass = crypto.change_24h >= 0 ? 'text-success' : 'text-danger';
         const changeIcon = crypto.change_24h >= 0 ? '▲' : '▼';
 
-        html += `
+        desktopHtml += `
             <tr>
                 <td>
                     <strong>${crypto.symbol}</strong>
@@ -317,13 +368,48 @@ function renderCryptoData(cryptos) {
         `;
     });
 
-    html += `
+    desktopHtml += `
                 </tbody>
             </table>
         </div>
     `;
 
-    container.innerHTML = html;
+    // Мобильная версия (карточки)
+    let mobileHtml = '<div class="d-md-none">';
+
+    cryptos.forEach(crypto => {
+        const changeClass = crypto.change_24h >= 0 ? 'text-success' : 'text-danger';
+        const changeIcon = crypto.change_24h >= 0 ? '▲' : '▼';
+
+        mobileHtml += `
+            <div class="crypto-card mb-3 p-3 border rounded">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="mb-0"><strong>${crypto.symbol}</strong></h6>
+                        <small class="text-muted">${crypto.name}</small>
+                    </div>
+                    <div class="text-end">
+                        <strong>${crypto.price_formatted}</strong>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="${changeClass}">
+                            <strong>${changeIcon} ${Math.abs(crypto.change_24h).toFixed(2)}%</strong>
+                        </span>
+                        <small class="text-muted ms-2">24ч</small>
+                    </div>
+                    <div>
+                        <small class="text-muted">Объем: ${crypto.volume_formatted}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    mobileHtml += '</div>';
+
+    container.innerHTML = desktopHtml + mobileHtml;
 }
 
 /**
