@@ -20,7 +20,12 @@ urlpatterns = [
     path('transactions/<int:pk>/edit/', views.transaction_edit, name='transaction_edit'),
     path('transactions/<int:pk>/delete/', views.transaction_delete, name='transaction_delete'),
 
+    # Инвестиции (акции)
     path('investments/', views.investments, name='investments'),
+    path('investments/add/', views.stock_add, name='stock_add'),
+    path('investments/<int:pk>/edit/', views.stock_edit, name='stock_edit'),
+    path('investments/<int:pk>/delete/', views.stock_delete, name='stock_delete'),
+
     path('analytics/', views.analytics, name='analytics'),
 
     # Бюджеты
@@ -34,6 +39,7 @@ urlpatterns = [
 
     # API endpoints
     path('api/crypto/', views.get_crypto_data, name='crypto_data'),
+    path('api/stock/', views.get_stock_data, name='stock_data'),
 
     # Авторизация
     path('register/', views.register, name='register'),

@@ -6,9 +6,9 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from datetime import timedelta
-from .models import User, Account, Transaction, Category, Budget, Tag
-from .services import BinanceService
-from .forms import UserRegistrationForm, UserLoginForm, AccountForm, BudgetForm, TransactionForm
+from .models import User, Account, Transaction, Category, Budget, Tag, Stock
+from .services import BinanceService, StockService
+from .forms import UserRegistrationForm, UserLoginForm, AccountForm, BudgetForm, TransactionForm, StockForm
 
 
 def index(request):
@@ -239,15 +239,66 @@ def transaction_delete(request, pk):
     })
 
 
+@login_required
 def investments(request):
-    """Страница инвестиций"""
-    # Счета типа investment
-    investment_accounts = Account.objects.filter(
-        account_type='investment'
-    ).select_related('currency', 'user').order_by('-balance')
+    """Страница инвестиций с портфелем акций"""
+    # Получаем все акции пользователя
+    user_stocks = Stock.objects.filter(user=request.user).select_related('currency').order_by('-purchase_date')
+
+    # Собираем данные по каждой акции с текущими ценами
+    stocks_data = []
+    total_investment = 0
+    total_current_value = 0
+
+    for stock in user_stocks:
+        # Получаем текущую цену акции
+        current_price_data = StockService.get_stock_price(stock.ticker)
+
+        if current_price_data:
+            current_price = current_price_data['price']
+
+            # Рассчитываем прибыль/убыток
+            profit_data = StockService.calculate_profit(
+                stock.purchase_price,
+                current_price,
+                stock.quantity
+            )
+
+            stocks_data.append({
+                'stock': stock,
+                'current_price': current_price,
+                'current_price_data': current_price_data,
+                'profit_data': profit_data,
+            })
+
+            total_investment += profit_data['total_investment']
+            total_current_value += profit_data['current_value']
+        else:
+            # Если не удалось получить цену, показываем базовую информацию
+            stocks_data.append({
+                'stock': stock,
+                'current_price': None,
+                'current_price_data': None,
+                'profit_data': {
+                    'total_investment': float(stock.total_investment),
+                    'current_value': None,
+                    'profit': None,
+                    'profit_percent': None,
+                },
+            })
+            total_investment += float(stock.total_investment)
+
+    # Рассчитываем общую прибыль портфеля
+    total_profit = total_current_value - total_investment
+    total_profit_percent = (total_profit / total_investment * 100) if total_investment > 0 else 0
 
     context = {
-        'investment_accounts': investment_accounts,
+        'stocks_data': stocks_data,
+        'stocks_count': user_stocks.count(),
+        'total_investment': total_investment,
+        'total_current_value': total_current_value,
+        'total_profit': total_profit,
+        'total_profit_percent': total_profit_percent,
     }
 
     return render(request, 'finance/investments.html', context)
@@ -576,3 +627,108 @@ def transaction_delete(request, pk):
         return redirect('finance:transactions')
 
     return render(request, 'finance/transaction_confirm_delete.html', {'transaction': transaction})
+
+
+# ==================== ИНВЕСТИЦИИ (АКЦИИ) ====================
+
+@login_required
+def stock_add(request):
+    """
+    Добавление новой акции в портфель
+    """
+    if request.method == 'POST':
+        form = StockForm(request.POST)
+        if form.is_valid():
+            stock = form.save(commit=False)
+            stock.user = request.user
+
+            # Пытаемся получить название компании, если оно не указано
+            if not stock.company_name:
+                stock_info = StockService.get_stock_price(stock.ticker)
+                if stock_info:
+                    stock.company_name = stock_info.get('name', stock.ticker)
+
+            stock.save()
+            messages.success(request, f'Акция {stock.ticker} успешно добавлена в портфель!')
+            return redirect('finance:investments')
+    else:
+        form = StockForm()
+
+    return render(request, 'finance/stock_form.html', {
+        'form': form,
+        'title': 'Добавить акцию в портфель'
+    })
+
+
+@login_required
+def stock_edit(request, pk):
+    """
+    Редактирование акции в портфеле
+    """
+    stock = get_object_or_404(Stock, pk=pk, user=request.user)
+
+    if request.method == 'POST':
+        form = StockForm(request.POST, instance=stock)
+        if form.is_valid():
+            stock = form.save()
+            messages.success(request, f'Акция {stock.ticker} успешно обновлена!')
+            return redirect('finance:investments')
+    else:
+        form = StockForm(instance=stock)
+
+    return render(request, 'finance/stock_form.html', {
+        'form': form,
+        'title': 'Редактировать акцию',
+        'stock': stock
+    })
+
+
+@login_required
+def stock_delete(request, pk):
+    """
+    Удаление акции из портфеля
+    """
+    stock = get_object_or_404(Stock, pk=pk, user=request.user)
+
+    if request.method == 'POST':
+        ticker = stock.ticker
+        stock.delete()
+        messages.success(request, f'Акция {ticker} успешно удалена из портфеля!')
+        return redirect('finance:investments')
+
+    return render(request, 'finance/stock_confirm_delete.html', {'stock': stock})
+
+
+@login_required
+def get_stock_data(request):
+    """
+    AJAX endpoint для получения данных об акции
+    Используется для автозаполнения названия компании
+    """
+    ticker = request.GET.get('ticker', '').upper()
+
+    if not ticker:
+        return JsonResponse({
+            'success': False,
+            'error': 'Тикер не указан'
+        }, status=400)
+
+    try:
+        stock_data = StockService.get_stock_price(ticker)
+
+        if stock_data:
+            return JsonResponse({
+                'success': True,
+                'data': stock_data
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': f'Не удалось найти данные для тикера {ticker}'
+            }, status=404)
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

@@ -4,7 +4,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import Account, Currency, Budget, Category, Transaction
+from .models import Account, Currency, Budget, Category, Transaction, Stock
 
 
 class UserRegistrationForm(UserCreationForm):
@@ -281,3 +281,94 @@ class TransactionForm(forms.ModelForm):
         if user:
             # Фильтруем счета только для текущего пользователя
             self.fields['account'].queryset = Account.objects.filter(user=user)
+
+
+class StockForm(forms.ModelForm):
+    """
+    Форма для добавления и редактирования акций в портфеле
+    """
+    ticker = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Например: AAPL, MSFT, GOOGL',
+            'style': 'text-transform: uppercase;'
+        }),
+        label='Тикер акции',
+        help_text='Введите символ акции (например: AAPL для Apple)'
+    )
+    company_name = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Название компании (заполняется автоматически)'
+        }),
+        label='Название компании'
+    )
+    quantity = forms.DecimalField(
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '0.0000',
+            'step': '0.0001',
+            'min': '0.0001'
+        }),
+        label='Количество акций'
+    )
+    purchase_price = forms.DecimalField(
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '0.00',
+            'step': '0.01',
+            'min': '0.01'
+        }),
+        label='Цена покупки (за 1 акцию)'
+    )
+    purchase_date = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='Дата покупки'
+    )
+    currency = forms.ModelChoiceField(
+        queryset=Currency.objects.all(),
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Валюта'
+    )
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'placeholder': 'Дополнительные заметки о покупке...',
+            'rows': 3
+        }),
+        label='Заметки'
+    )
+
+    class Meta:
+        model = Stock
+        fields = ['ticker', 'company_name', 'quantity', 'purchase_price', 'purchase_date', 'currency', 'notes']
+
+    def __init__(self, *args, **kwargs):
+        """
+        Инициализация формы
+        Устанавливает USD по умолчанию для валюты
+        """
+        super().__init__(*args, **kwargs)
+        # Устанавливаем USD по умолчанию, если валюта существует
+        if not self.instance.pk:
+            try:
+                usd = Currency.objects.get(currency_code='USD')
+                self.fields['currency'].initial = usd
+            except Currency.DoesNotExist:
+                pass
+
+    def clean_ticker(self):
+        """
+        Преобразует тикер в верхний регистр
+        """
+        ticker = self.cleaned_data.get('ticker')
+        if ticker:
+            return ticker.upper().strip()
+        return ticker

@@ -1,0 +1,346 @@
+{% extends 'finance/base.html' %}
+
+{% block title %}{{ title }} - Topfer{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="widget">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0">{{ title }}</h4>
+                <a href="{% url 'finance:investments' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Назад к портфелю
+                </a>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" id="stock-form">
+                {% csrf_token %}
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.ticker.id_for_label }}" class="form-label">
+                            {{ form.ticker.label }}
+                        </label>
+                        <div class="position-relative">
+                            {{ form.ticker }}
+                            <div id="ticker-suggestions" class="position-absolute w-100 bg-white border rounded shadow-sm" style="display: none; z-index: 1000; max-height: 300px; overflow-y: auto;"></div>
+                        </div>
+                        {% if form.ticker.help_text %}
+                            <small class="form-text text-muted">{{ form.ticker.help_text }}</small>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            <strong>Популярные:</strong> AAPL, MSFT, GOOGL, AMZN, TSLA, META, NVDA, JPM, V, WMT
+                        </small>
+                        {% if form.ticker.errors %}
+                            <div class="text-danger">
+                                {% for error in form.ticker.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.company_name.id_for_label }}" class="form-label">
+                            {{ form.company_name.label }}
+                        </label>
+                        {{ form.company_name }}
+                        {% if form.company_name.errors %}
+                            <div class="text-danger">
+                                {% for error in form.company_name.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.quantity.id_for_label }}" class="form-label">
+                            {{ form.quantity.label }}
+                        </label>
+                        {{ form.quantity }}
+                        {% if form.quantity.errors %}
+                            <div class="text-danger">
+                                {% for error in form.quantity.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.purchase_price.id_for_label }}" class="form-label">
+                            {{ form.purchase_price.label }}
+                        </label>
+                        {{ form.purchase_price }}
+                        {% if form.purchase_price.errors %}
+                            <div class="text-danger">
+                                {% for error in form.purchase_price.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.purchase_date.id_for_label }}" class="form-label">
+                            {{ form.purchase_date.label }}
+                        </label>
+                        {{ form.purchase_date }}
+                        {% if form.purchase_date.errors %}
+                            <div class="text-danger">
+                                {% for error in form.purchase_date.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.currency.id_for_label }}" class="form-label">
+                            {{ form.currency.label }}
+                        </label>
+                        {{ form.currency }}
+                        {% if form.currency.errors %}
+                            <div class="text-danger">
+                                {% for error in form.currency.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label">
+                        {{ form.notes.label }}
+                    </label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <div class="text-danger">
+                            {% for error in form.notes.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Сохранить
+                    </button>
+                    <a href="{% url 'finance:investments' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Скрипт для автоматического получения названия компании и подсказок -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tickerInput = document.getElementById('{{ form.ticker.id_for_label }}');
+    const companyNameInput = document.getElementById('{{ form.company_name.id_for_label }}');
+    const suggestionsDiv = document.getElementById('ticker-suggestions');
+
+    // База популярных акций
+    const popularStocks = [
+        { ticker: 'AAPL', name: 'Apple Inc.', category: 'Tech' },
+        { ticker: 'MSFT', name: 'Microsoft Corporation', category: 'Tech' },
+        { ticker: 'GOOGL', name: 'Alphabet Inc.', category: 'Tech' },
+        { ticker: 'AMZN', name: 'Amazon.com Inc.', category: 'Tech' },
+        { ticker: 'TSLA', name: 'Tesla, Inc.', category: 'Auto' },
+        { ticker: 'META', name: 'Meta Platforms Inc.', category: 'Tech' },
+        { ticker: 'NVDA', name: 'NVIDIA Corporation', category: 'Tech' },
+        { ticker: 'JPM', name: 'JPMorgan Chase & Co.', category: 'Finance' },
+        { ticker: 'V', name: 'Visa Inc.', category: 'Finance' },
+        { ticker: 'WMT', name: 'Walmart Inc.', category: 'Retail' },
+        { ticker: 'JNJ', name: 'Johnson & Johnson', category: 'Healthcare' },
+        { ticker: 'PG', name: 'Procter & Gamble Co.', category: 'Consumer' },
+        { ticker: 'MA', name: 'Mastercard Inc.', category: 'Finance' },
+        { ticker: 'HD', name: 'The Home Depot Inc.', category: 'Retail' },
+        { ticker: 'DIS', name: 'The Walt Disney Company', category: 'Media' },
+        { ticker: 'NFLX', name: 'Netflix Inc.', category: 'Media' },
+        { ticker: 'PYPL', name: 'PayPal Holdings Inc.', category: 'Finance' },
+        { ticker: 'INTC', name: 'Intel Corporation', category: 'Tech' },
+        { ticker: 'AMD', name: 'Advanced Micro Devices', category: 'Tech' },
+        { ticker: 'BABA', name: 'Alibaba Group', category: 'Tech' }
+    ];
+
+    let debounceTimer;
+    let selectedIndex = -1;
+
+    // Функция для показа подсказок
+    function showSuggestions(query) {
+        if (!query || query.length === 0) {
+            suggestionsDiv.style.display = 'none';
+            return;
+        }
+
+        const filtered = popularStocks.filter(stock =>
+            stock.ticker.includes(query.toUpperCase()) ||
+            stock.name.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 8);
+
+        if (filtered.length === 0) {
+            suggestionsDiv.style.display = 'none';
+            return;
+        }
+
+        suggestionsDiv.innerHTML = filtered.map((stock, index) => `
+            <div class="suggestion-item p-2 border-bottom" style="cursor: pointer;" data-index="${index}" data-ticker="${stock.ticker}" data-name="${stock.name}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${stock.ticker}</strong>
+                        <small class="text-muted ms-2">${stock.name}</small>
+                    </div>
+                    <span class="badge bg-secondary">${stock.category}</span>
+                </div>
+            </div>
+        `).join('');
+
+        suggestionsDiv.style.display = 'block';
+        selectedIndex = -1;
+
+        // Добавляем обработчики кликов
+        document.querySelectorAll('.suggestion-item').forEach(item => {
+            item.addEventListener('click', function() {
+                selectSuggestion(this.dataset.ticker, this.dataset.name);
+            });
+
+            item.addEventListener('mouseenter', function() {
+                document.querySelectorAll('.suggestion-item').forEach(i => i.classList.remove('bg-light'));
+                this.classList.add('bg-light');
+            });
+        });
+    }
+
+    // Функция выбора подсказки
+    function selectSuggestion(ticker, name) {
+        tickerInput.value = ticker;
+        companyNameInput.value = name;
+        suggestionsDiv.style.display = 'none';
+        selectedIndex = -1;
+    }
+
+    // Обработка ввода в поле тикера
+    if (tickerInput && companyNameInput) {
+        tickerInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const query = this.value.trim();
+
+            // Показываем подсказки
+            showSuggestions(query);
+
+            // Получаем данные из API
+            if (query.length > 0) {
+                debounceTimer = setTimeout(function() {
+                    fetch(`/api/stock/?ticker=${query.toUpperCase()}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.data.name) {
+                                companyNameInput.value = data.data.name;
+                            }
+                        })
+                        .catch(error => {
+                            console.log('Не удалось получить данные об акции');
+                        });
+                }, 500);
+            }
+        });
+
+        // Обработка нажатий клавиш
+        tickerInput.addEventListener('keydown', function(e) {
+            const items = document.querySelectorAll('.suggestion-item');
+            if (items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                updateSelectedItem(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, 0);
+                updateSelectedItem(items);
+            } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                e.preventDefault();
+                const selected = items[selectedIndex];
+                selectSuggestion(selected.dataset.ticker, selected.dataset.name);
+            } else if (e.key === 'Escape') {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+
+        // Обновление выделенного элемента
+        function updateSelectedItem(items) {
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('bg-light');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('bg-light');
+                }
+            });
+        }
+
+        // Закрытие подсказок при клике вне
+        document.addEventListener('click', function(e) {
+            if (!tickerInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+
+        // Показываем подсказки при фокусе
+        tickerInput.addEventListener('focus', function() {
+            if (this.value.trim().length > 0) {
+                showSuggestions(this.value.trim());
+            } else {
+                // Показываем все популярные акции
+                showSuggestions('');
+                suggestionsDiv.innerHTML = '<div class="p-2 text-muted"><small>Популярные акции:</small></div>';
+                popularStocks.slice(0, 10).forEach(stock => {
+                    suggestionsDiv.innerHTML += `
+                        <div class="suggestion-item p-2 border-bottom" style="cursor: pointer;" data-ticker="${stock.ticker}" data-name="${stock.name}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${stock.ticker}</strong>
+                                    <small class="text-muted ms-2">${stock.name}</small>
+                                </div>
+                                <span class="badge bg-secondary">${stock.category}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                suggestionsDiv.style.display = 'block';
+
+                // Добавляем обработчики
+                document.querySelectorAll('.suggestion-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        selectSuggestion(this.dataset.ticker, this.dataset.name);
+                    });
+                });
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.db.models import Count, Sum
-from .models import User, Currency, Category, Account, Tag, Transaction, Budget
+from .models import User, Currency, Category, Account, Tag, Transaction, Budget, Stock
 
 
 @admin.register(User)
@@ -381,3 +381,51 @@ class BudgetAdmin(admin.ModelAdmin):
             return 'Завершен'
         days = (obj.end_date - today).days
         return f"{days} дн."
+
+
+@admin.register(Stock)
+class StockAdmin(admin.ModelAdmin):
+    """Админка для управления акциями в портфеле"""
+    list_display = ['ticker', 'company_name', 'user_email', 'quantity', 'purchase_price_display', 'purchase_date', 'total_investment_display']
+    list_filter = ['purchase_date', 'currency', 'user']
+    search_fields = ['ticker', 'company_name', 'user__email', 'user__username']
+    raw_id_fields = ['user']
+    list_display_links = ['ticker', 'company_name']
+    readonly_fields = ['created_date', 'total_investment_display']
+    date_hierarchy = 'purchase_date'
+
+    fieldsets = (
+        ('Информация об акции', {
+            'fields': ('ticker', 'company_name')
+        }),
+        ('Покупка', {
+            'fields': ('user', 'quantity', 'purchase_price', 'purchase_date', 'currency')
+        }),
+        ('Дополнительно', {
+            'fields': ('notes', 'created_date', 'total_investment_display')
+        }),
+    )
+
+    @admin.display(description='Email пользователя', ordering='user__email')
+    def user_email(self, obj):
+        """Возвращает email пользователя владельца акции"""
+        return obj.user.email
+
+    @admin.display(description='Цена покупки')
+    def purchase_price_display(self, obj):
+        """Отображает цену покупки с валютой"""
+        return format_html(
+            '<strong>{} {}</strong>',
+            obj.purchase_price,
+            obj.currency.symbol or obj.currency.currency_code
+        )
+
+    @admin.display(description='Сумма инвестиции')
+    def total_investment_display(self, obj):
+        """Отображает общую сумму инвестиции"""
+        total = obj.total_investment
+        return format_html(
+            '<strong style="color: #0066cc;">{} {}</strong>',
+            total,
+            obj.currency.symbol or obj.currency.currency_code
+        )

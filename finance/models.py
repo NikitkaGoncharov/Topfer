@@ -335,3 +335,65 @@ class Budget(models.Model):
     def __str__(self):
         """Возвращает строковое представление бюджета"""
         return f"{self.budget_name} - {self.amount} ({self.get_period_type_display()})"
+
+
+class Stock(models.Model):
+    """Модель инвестиции в акцию"""
+    user = models.ForeignKey(
+        DjangoUser,
+        on_delete=models.CASCADE,
+        related_name='finance_stocks',
+        verbose_name='Пользователь'
+    )
+    ticker = models.CharField(
+        max_length=10,
+        verbose_name='Тикер акции',
+        help_text='Например: AAPL, MSFT, GOOGL'
+    )
+    company_name = models.CharField(
+        max_length=200,
+        verbose_name='Название компании',
+        blank=True
+    )
+    quantity = models.DecimalField(
+        max_digits=15,
+        decimal_places=4,
+        verbose_name='Количество акций'
+    )
+    purchase_price = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        verbose_name='Цена покупки за акцию'
+    )
+    purchase_date = models.DateField(
+        verbose_name='Дата покупки'
+    )
+    currency = models.ForeignKey(
+        Currency,
+        on_delete=models.PROTECT,
+        related_name='stocks',
+        verbose_name='Валюта',
+        default=1
+    )
+    notes = models.TextField(
+        blank=True,
+        verbose_name='Заметки'
+    )
+    created_date = models.DateTimeField(
+        default=timezone.now,
+        verbose_name='Дата добавления'
+    )
+
+    class Meta:
+        verbose_name = 'Акция'
+        verbose_name_plural = 'Акции'
+        ordering = ['-purchase_date']
+
+    def __str__(self):
+        """Возвращает строковое представление акции"""
+        return f"{self.ticker} ({self.quantity} шт. по {self.purchase_price})"
+
+    @property
+    def total_investment(self):
+        """Возвращает общую сумму инвестиции"""
+        return self.quantity * self.purchase_price
