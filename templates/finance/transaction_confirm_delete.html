@@ -1,0 +1,70 @@
+{% extends 'finance/base.html' %}
+
+{% block title %}Подтверждение удаления - Topfer{% endblock %}
+
+{% block page_title %}Подтверждение удаления{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="widget">
+            <div class="text-center mb-4">
+                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
+                <h4 class="mt-3">Удалить транзакцию?</h4>
+            </div>
+
+            <div class="alert alert-warning">
+                <h6 class="alert-heading">Вы уверены, что хотите удалить эту транзакцию?</h6>
+                <hr>
+                <div class="mb-2">
+                    <strong>Тип:</strong>
+                    <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% elif transaction.transaction_type == 'expense' %}bg-danger{% else %}bg-info{% endif %}">
+                        {{ transaction.get_transaction_type_display }}
+                    </span>
+                </div>
+                {% if transaction.category %}
+                <div class="mb-2">
+                    <strong>Категория:</strong>
+                    {% if transaction.category.icon %}{{ transaction.category.icon }} {% endif %}{{ transaction.category.category_name }}
+                </div>
+                {% endif %}
+                <div class="mb-2">
+                    <strong>Счет:</strong> {{ transaction.account.account_name }}
+                </div>
+                <div class="mb-2">
+                    <strong>Сумма:</strong>
+                    <span class="{% if transaction.transaction_type == 'income' %}text-success{% elif transaction.transaction_type == 'expense' %}text-danger{% else %}text-info{% endif %}">
+                        {% if transaction.transaction_type == 'income' %}+{% elif transaction.transaction_type == 'expense' %}-{% endif %}{{ transaction.amount|floatformat:2 }} {{ transaction.account.currency.symbol }}
+                    </span>
+                </div>
+                <div class="mb-2">
+                    <strong>Дата:</strong> {{ transaction.transaction_date|date:"d.m.Y H:i" }}
+                </div>
+                {% if transaction.description %}
+                <div class="mb-0">
+                    <strong>Описание:</strong> {{ transaction.description }}
+                </div>
+                {% endif %}
+            </div>
+
+            <p class="text-muted small">
+                <i class="bi bi-info-circle"></i> Это действие нельзя отменить. Транзакция будет удалена безвозвратно.
+            </p>
+
+            <form method="post" class="mt-4">
+                {% csrf_token %}
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Да, удалить транзакцию
+                    </button>
+                    <a href="{% url 'finance:transactions' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

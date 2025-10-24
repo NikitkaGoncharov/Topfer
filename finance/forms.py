@@ -4,7 +4,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import Account, Currency, Budget, Category
+from .models import Account, Currency, Budget, Category, Transaction
 
 
 class UserRegistrationForm(UserCreationForm):
@@ -211,3 +211,73 @@ class BudgetForm(forms.ModelForm):
 
         # Показываем только категории расходов
         self.fields['category'].queryset = Category.objects.filter(category_type='expense')
+
+
+class TransactionForm(forms.ModelForm):
+    """
+    Форма для создания и редактирования транзакции
+    """
+    account = forms.ModelChoiceField(
+        queryset=Account.objects.all(),
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Счет'
+    )
+    transaction_type = forms.ChoiceField(
+        choices=Transaction._meta.get_field('transaction_type').choices,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'transaction-type-select'
+        }),
+        label='Тип транзакции'
+    )
+    category = forms.ModelChoiceField(
+        queryset=Category.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'category-select'
+        }),
+        label='Категория'
+    )
+    amount = forms.DecimalField(
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '0.00',
+            'step': '0.01'
+        }),
+        label='Сумма'
+    )
+    transaction_date = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={
+            'class': 'form-control',
+            'type': 'datetime-local'
+        }),
+        label='Дата и время транзакции'
+    )
+    description = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'placeholder': 'Добавьте описание...',
+            'rows': 3
+        }),
+        label='Описание'
+    )
+
+    class Meta:
+        model = Transaction
+        fields = ['account', 'transaction_type', 'category', 'amount', 'transaction_date', 'description']
+
+    def __init__(self, *args, **kwargs):
+        """
+        Инициализация формы
+        Фильтрует счета и категории для текущего пользователя
+        """
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            # Фильтруем счета только для текущего пользователя
+            self.fields['account'].queryset = Account.objects.filter(user=user)

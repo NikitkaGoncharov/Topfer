@@ -8,7 +8,7 @@ from django.contrib import messages
 from datetime import timedelta
 from .models import User, Account, Transaction, Category, Budget, Tag
 from .services import BinanceService
-from .forms import UserRegistrationForm, UserLoginForm, AccountForm, BudgetForm
+from .forms import UserRegistrationForm, UserLoginForm, AccountForm, BudgetForm, TransactionForm
 
 
 def index(request):
@@ -137,16 +137,106 @@ def accounts(request):
 
 
 def transactions(request):
-    """Страница со всеми транзакциями"""
-    all_transactions = Transaction.objects.all().select_related(
+    """Страница со всеми транзакциями с фильтрами"""
+    # Получаем все транзакции пользователя
+    all_transactions = Transaction.objects.filter(
+        account__user=request.user
+    ).select_related(
         'account', 'category', 'account__currency'
     ).prefetch_related('tags').order_by('-transaction_date')
 
+    # Фильтры
+    transaction_type = request.GET.get('type', '')
+    category_id = request.GET.get('category', '')
+    account_id = request.GET.get('account', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    if transaction_type:
+        all_transactions = all_transactions.filter(transaction_type=transaction_type)
+
+    if category_id:
+        all_transactions = all_transactions.filter(category_id=category_id)
+
+    if account_id:
+        all_transactions = all_transactions.filter(account_id=account_id)
+
+    if date_from:
+        all_transactions = all_transactions.filter(transaction_date__gte=date_from)
+
+    if date_to:
+        all_transactions = all_transactions.filter(transaction_date__lte=date_to)
+
+    # Получаем все категории и счета пользователя для фильтров
+    categories = Category.objects.all()
+    user_accounts = Account.objects.filter(user=request.user)
+
     context = {
         'transactions': all_transactions,
+        'categories': categories,
+        'user_accounts': user_accounts,
+        'selected_type': transaction_type,
+        'selected_category': category_id,
+        'selected_account': account_id,
+        'date_from': date_from,
+        'date_to': date_to,
     }
 
     return render(request, 'finance/transactions.html', context)
+
+
+@login_required
+def transaction_add(request):
+    """Добавление новой транзакции"""
+    if request.method == 'POST':
+        form = TransactionForm(request.POST, user=request.user)
+        if form.is_valid():
+            transaction = form.save()
+            messages.success(request, f'Транзакция на сумму {transaction.amount} {transaction.account.currency.symbol} успешно создана!')
+            return redirect('finance:transactions')
+    else:
+        form = TransactionForm(user=request.user)
+
+    return render(request, 'finance/transaction_form.html', {
+        'form': form,
+        'title': 'Добавить транзакцию'
+    })
+
+
+@login_required
+def transaction_edit(request, pk):
+    """Редактирование транзакции"""
+    transaction = get_object_or_404(Transaction, pk=pk, account__user=request.user)
+
+    if request.method == 'POST':
+        form = TransactionForm(request.POST, instance=transaction, user=request.user)
+        if form.is_valid():
+            transaction = form.save()
+            messages.success(request, 'Транзакция успешно обновлена!')
+            return redirect('finance:transactions')
+    else:
+        form = TransactionForm(instance=transaction, user=request.user)
+
+    return render(request, 'finance/transaction_form.html', {
+        'form': form,
+        'title': 'Редактировать транзакцию',
+        'transaction': transaction
+    })
+
+
+@login_required
+def transaction_delete(request, pk):
+    """Удаление транзакции"""
+    transaction = get_object_or_404(Transaction, pk=pk, account__user=request.user)
+
+    if request.method == 'POST':
+        messages.success(request, f'Транзакция на сумму {transaction.amount} {transaction.account.currency.symbol} успешно удалена!')
+        transaction.delete()
+        return redirect('finance:transactions')
+
+    return render(request, 'finance/transaction_confirm_delete.html', {
+        'transaction': transaction
+    })
 
 
 def investments(request):
@@ -432,3 +522,57 @@ def budget_delete(request, pk):
         return redirect('finance:index')
 
     return render(request, 'finance/budget_confirm_delete.html', {'budget': budget})
+
+
+# ==================== ТРАНЗАКЦИИ ====================
+
+@login_required
+def transaction_add(request):
+    """
+    Создание новой транзакции для текущего пользователя
+    """
+    if request.method == 'POST':
+        form = TransactionForm(request.POST, user=request.user)
+        if form.is_valid():
+            transaction = form.save()
+            messages.success(request, f'Транзакция на сумму {transaction.amount} успешно создана!')
+            return redirect('finance:transactions')
+    else:
+        form = TransactionForm(user=request.user)
+
+    return render(request, 'finance/transaction_form.html', {'form': form, 'title': 'Добавить транзакцию'})
+
+
+@login_required
+def transaction_edit(request, pk):
+    """
+    Редактирование существующей транзакции
+    """
+    transaction = get_object_or_404(Transaction, pk=pk, account__user=request.user)
+
+    if request.method == 'POST':
+        form = TransactionForm(request.POST, instance=transaction, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Транзакция успешно обновлена!')
+            return redirect('finance:transactions')
+    else:
+        form = TransactionForm(instance=transaction, user=request.user)
+
+    return render(request, 'finance/transaction_form.html', {'form': form, 'title': 'Редактировать транзакцию', 'transaction': transaction})
+
+
+@login_required
+def transaction_delete(request, pk):
+    """
+    Удаление транзакции пользователя
+    """
+    transaction = get_object_or_404(Transaction, pk=pk, account__user=request.user)
+
+    if request.method == 'POST':
+        amount = transaction.amount
+        transaction.delete()
+        messages.success(request, f'Транзакция на сумму {amount} успешно удалена!')
+        return redirect('finance:transactions')
+
+    return render(request, 'finance/transaction_confirm_delete.html', {'transaction': transaction})

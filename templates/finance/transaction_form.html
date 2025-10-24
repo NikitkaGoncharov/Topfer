@@ -1,0 +1,149 @@
+{% extends 'finance/base.html' %}
+
+{% block title %}{{ title }} - Topfer{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="widget">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0">{{ title }}</h4>
+                <a href="{% url 'finance:transactions' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Назад к транзакциям
+                </a>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.account.id_for_label }}" class="form-label">
+                            {{ form.account.label }}
+                        </label>
+                        {{ form.account }}
+                        {% if form.account.errors %}
+                            <div class="text-danger">
+                                {% for error in form.account.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.transaction_type.id_for_label }}" class="form-label">
+                            {{ form.transaction_type.label }}
+                        </label>
+                        {{ form.transaction_type }}
+                        {% if form.transaction_type.errors %}
+                            <div class="text-danger">
+                                {% for error in form.transaction_type.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.category.id_for_label }}" class="form-label">
+                            {{ form.category.label }}
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                            <div class="text-danger">
+                                {% for error in form.category.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Оставьте пустым, если категория не требуется</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.amount.id_for_label }}" class="form-label">
+                            {{ form.amount.label }}
+                        </label>
+                        {{ form.amount }}
+                        {% if form.amount.errors %}
+                            <div class="text-danger">
+                                {% for error in form.amount.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.transaction_date.id_for_label }}" class="form-label">
+                        {{ form.transaction_date.label }}
+                    </label>
+                    {{ form.transaction_date }}
+                    {% if form.transaction_date.errors %}
+                        <div class="text-danger">
+                            {% for error in form.transaction_date.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">
+                        {{ form.description.label }}
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="text-danger">
+                            {% for error in form.description.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <small class="form-text text-muted">Необязательное описание транзакции</small>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i>
+                        {% if transaction %}Сохранить изменения{% else %}Создать транзакцию{% endif %}
+                    </button>
+                    <a href="{% url 'finance:transactions' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Информационная панель -->
+        <div class="widget mt-3">
+            <h6 class="mb-3"><i class="bi bi-info-circle"></i> Справка</h6>
+            <div class="small text-muted">
+                <p><strong>Типы транзакций:</strong></p>
+                <ul class="mb-3">
+                    <li><strong>Доход</strong> - поступление денег на счет (зарплата, подарок и т.д.)</li>
+                    <li><strong>Расход</strong> - списание денег со счета (покупки, оплата услуг и т.д.)</li>
+                    <li><strong>Перевод</strong> - перемещение денег между вашими счетами</li>
+                </ul>
+                <p><strong>Категория:</strong> Помогает группировать транзакции для анализа расходов и доходов. Выбирайте подходящую категорию или оставьте пустым.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

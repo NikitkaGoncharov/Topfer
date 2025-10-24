@@ -13,7 +13,13 @@ urlpatterns = [
     path('accounts/add/', views.account_add, name='account_add'),
     path('accounts/<int:pk>/edit/', views.account_edit, name='account_edit'),
     path('accounts/<int:pk>/delete/', views.account_delete, name='account_delete'),
+
+    # Транзакции
     path('transactions/', views.transactions, name='transactions'),
+    path('transactions/add/', views.transaction_add, name='transaction_add'),
+    path('transactions/<int:pk>/edit/', views.transaction_edit, name='transaction_edit'),
+    path('transactions/<int:pk>/delete/', views.transaction_delete, name='transaction_delete'),
+
     path('investments/', views.investments, name='investments'),
     path('analytics/', views.analytics, name='analytics'),
 
