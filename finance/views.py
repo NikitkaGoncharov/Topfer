@@ -1,10 +1,14 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.db.models import Sum, Count, Avg, Q
 from django.utils import timezone
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from datetime import timedelta
 from .models import User, Account, Transaction, Category, Budget, Tag
 from .services import BinanceService
+from .forms import UserRegistrationForm, UserLoginForm
 
 
 def index(request):
@@ -217,3 +221,73 @@ def get_crypto_data(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+def register(request):
+    """
+    Обрабатывает регистрацию нового пользователя
+
+    GET: Отображает форму регистрации
+    POST: Создает нового пользователя и автоматически авторизует его
+
+    Returns:
+        HttpResponse: Страница регистрации или редирект на главную
+    """
+    if request.user.is_authenticated:
+        return redirect('finance:index')
+
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'Аккаунт для {username} успешно создан! Вы автоматически вошли в систему.')
+            login(request, user)
+            return redirect('finance:index')
+    else:
+        form = UserRegistrationForm()
+
+    return render(request, 'finance/register.html', {'form': form})
+
+
+def user_login(request):
+    """
+    Обрабатывает вход пользователя в систему
+
+    GET: Отображает форму входа
+    POST: Аутентифицирует пользователя
+
+    Returns:
+        HttpResponse: Страница входа или редирект на главную
+    """
+    if request.user.is_authenticated:
+        return redirect('finance:index')
+
+    if request.method == 'POST':
+        form = UserLoginForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                messages.success(request, f'Добро пожаловать, {username}!')
+                return redirect('finance:index')
+        else:
+            messages.error(request, 'Неверное имя пользователя или пароль')
+    else:
+        form = UserLoginForm()
+
+    return render(request, 'finance/login.html', {'form': form})
+
+
+def user_logout(request):
+    """
+    Выход пользователя из системы
+
+    Returns:
+        HttpResponse: Редирект на главную страницу
+    """
+    logout(request)
+    messages.info(request, 'Вы успешно вышли из системы')
+    return redirect('finance:index')

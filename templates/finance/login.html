@@ -2,11 +2,43 @@
 
 {% block title %}Вход - Topfer{% endblock %}
 
+{% block body_class %}auth-page{% endblock %}
+
+{% block page_title %}Вход в систему{% endblock %}
+
+{% block extra_css %}
+<style>
+    .top-header {
+        display: none !important;
+    }
+    .mb-3 {
+        margin-bottom: 2rem !important;
+    }
+    .form-label {
+        margin-bottom: 1.2rem !important;
+        margin-top: 0.5rem;
+        display: block;
+    }
+    .form-control {
+        margin-bottom: 0.8rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
+<div class="row justify-content-center mt-5">
     <div class="col-md-6">
         <div class="widget">
             <h3 class="text-center mb-4">Вход в систему</h3>
+
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
 
             {% if form.errors %}
             <div class="alert alert-danger">
@@ -17,20 +49,39 @@
             <form method="post">
                 {% csrf_token %}
                 <div class="mb-3">
-                    <label for="id_username" class="form-label">Имя пользователя</label>
-                    <input type="text" class="form-control" id="id_username" name="username" required autofocus>
+                    {{ form.username.label_tag }}
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                        <div class="text-danger">
+                            {% for error in form.username.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="mb-3">
-                    <label for="id_password" class="form-label">Пароль</label>
-                    <input type="password" class="form-control" id="id_password" name="password" required>
+                    {{ form.password.label_tag }}
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <div class="text-danger">
+                            {% for error in form.password.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Войти</button>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-box-arrow-in-right"></i> Войти
+                </button>
                 <input type="hidden" name="next" value="{{ next }}">
             </form>
 
             <hr>
             <p class="text-center text-muted">
-                Для доступа к админ-панели используйте <a href="/admin/">этот вход</a>
+                Нет аккаунта? <a href="{% url 'finance:register' %}">Зарегистрироваться</a>
+            </p>
+            <p class="text-center text-muted">
+                <small>Для доступа к админ-панели используйте <a href="/admin/">этот вход</a></small>
             </p>
         </div>
     </div>

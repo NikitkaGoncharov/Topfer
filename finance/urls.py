@@ -21,6 +21,7 @@ urlpatterns = [
     path('api/crypto/', views.get_crypto_data, name='crypto_data'),
 
     # Авторизация
-    path('login/', auth_views.LoginView.as_view(template_name='finance/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
+    path('register/', views.register, name='register'),
+    path('login/', views.user_login, name='login'),
+    path('logout/', views.user_logout, name='logout'),
 ]
