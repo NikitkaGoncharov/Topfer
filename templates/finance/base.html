@@ -273,9 +273,9 @@
                 <h2 class="mb-0">{% block page_title %}Мои финансы{% endblock %}</h2>
 
                 {% if request.resolver_match.url_name == 'index' or request.resolver_match.url_name == 'transactions' %}
-                <div class="d-flex align-items-center flex-grow-1 mx-4">
-                    <form action="{% url 'finance:search' %}" method="get" class="d-flex w-100">
-                        <input class="form-control me-2" type="search" name="q" placeholder="Поиск транзакций..." aria-label="Search" value="{{ query }}" style="max-width: 500px;">
+                <div class="d-flex align-items-center ms-auto">
+                    <form action="{% url 'finance:search' %}" method="get" class="d-flex">
+                        <input class="form-control me-2" type="search" name="q" placeholder="Поиск транзакций..." aria-label="Search" value="{{ query }}" style="width: 300px;">
                         <button class="btn btn-primary" type="submit">
                             <i class="bi bi-search"></i>
                         </button>
