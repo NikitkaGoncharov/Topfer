@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',  # Django REST Framework
     'django_filters',  # Django Filter для фильтрации в API
+    'simple_history',  # Django Simple History для отслеживания изменений
+    'import_export',  # Django Import-Export для экспорта данных в Excel
     'finance',
 ]
 
@@ -50,6 +52,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'simple_history.middleware.HistoryRequestMiddleware',  # Для отслеживания пользователя в истории
 ]
 
 ROOT_URLCONF = 'finance_project.urls'

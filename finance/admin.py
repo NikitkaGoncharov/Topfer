@@ -1,7 +1,10 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.db.models import Count, Sum
+from import_export.admin import ImportExportModelAdmin
+from simple_history.admin import SimpleHistoryAdmin
 from .models import User, Currency, Category, Account, Tag, Transaction, Budget, Stock
+from .resources import AccountResource, TransactionResource, BudgetResource
 
 
 @admin.register(User)
@@ -138,7 +141,8 @@ class TransactionInline(admin.TabularInline):
 
 
 @admin.register(Account)
-class AccountAdmin(admin.ModelAdmin):
+class AccountAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    resource_class = AccountResource  # Подключаем Resource для экспорта
     list_display = ['account_name', 'user_email', 'account_type', 'balance_display', 'currency', 'bank_connected', 'created_date', 'transactions_count']
     list_filter = ['account_type', 'currency', 'bank_connected', 'created_date']
     search_fields = ['account_name', 'user__email', 'user__first_name', 'user__last_name']
@@ -147,6 +151,7 @@ class AccountAdmin(admin.ModelAdmin):
     readonly_fields = ['created_date', 'transactions_count', 'total_income', 'total_expense']
     date_hierarchy = 'created_date'
     inlines = [TransactionInline]
+    history_list_display = ['balance']  # Показываем историю изменений баланса
 
     fieldsets = (
         ('Основная информация', {
@@ -227,7 +232,8 @@ class TagAdmin(admin.ModelAdmin):
 
 
 @admin.register(Transaction)
-class TransactionAdmin(admin.ModelAdmin):
+class TransactionAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    resource_class = TransactionResource  # Подключаем Resource для экспорта
     list_display = ['transaction_id', 'account_name', 'transaction_type', 'amount_display', 'category', 'transaction_date', 'is_recurring', 'tags_list']
     list_filter = ['transaction_type', 'is_recurring', 'transaction_date', 'account__account_type', 'category__category_type']
     search_fields = ['description', 'account__account_name', 'account__user__email', 'category__category_name']
@@ -236,6 +242,7 @@ class TransactionAdmin(admin.ModelAdmin):
     list_display_links = ['transaction_id', 'account_name']
     readonly_fields = ['transaction_date', 'receipt_preview']
     date_hierarchy = 'transaction_date'
+    history_list_display = ['amount', 'transaction_type']  # История изменений суммы и типа
 
     fieldsets = (
         ('Основная информация', {
@@ -297,13 +304,15 @@ class TransactionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Budget)
-class BudgetAdmin(admin.ModelAdmin):
+class BudgetAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    resource_class = BudgetResource  # Подключаем Resource для экспорта
     list_display = ['budget_name', 'user_email', 'amount_display', 'period_type', 'start_date', 'end_date', 'category', 'is_active']
     list_filter = ['period_type', 'start_date', 'user']
     search_fields = ['budget_name', 'user__email', 'category__category_name']
     raw_id_fields = ['user', 'category']
     list_display_links = ['budget_name']
     date_hierarchy = 'start_date'
+    history_list_display = ['amount', 'start_date', 'end_date']  # История изменений суммы и дат
 
     def get_readonly_fields(self, request, obj=None):
         """Возвращает список полей только для чтения при редактировании бюджета"""

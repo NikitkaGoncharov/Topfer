@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import EmailValidator
 from django.utils import timezone
 from django.contrib.auth.models import User as DjangoUser
+from simple_history.models import HistoricalRecords
 
 
 class User(models.Model):
@@ -180,6 +181,9 @@ class Account(models.Model):
         verbose_name='Дата создания'
     )
 
+    # История изменений
+    history = HistoricalRecords()
+
     class Meta:
         verbose_name = 'Счет'
         verbose_name_plural = 'Счета'
@@ -273,6 +277,9 @@ class Transaction(models.Model):
         verbose_name='Теги'
     )
 
+    # История изменений
+    history = HistoricalRecords()
+
     class Meta:
         verbose_name = 'Транзакция'
         verbose_name_plural = 'Транзакции'
@@ -326,6 +333,9 @@ class Budget(models.Model):
         related_name='budgets',
         verbose_name='Категория'
     )
+
+    # История изменений
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = 'Бюджет'
