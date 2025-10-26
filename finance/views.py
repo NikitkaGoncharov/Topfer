@@ -21,75 +21,107 @@ def index(request):
     3. Последние транзакции - топ-5 последних транзакций (order_by)
     4. Популярные счета - счета с наибольшим балансом (order_by)
     5. Активные бюджеты - текущие активные бюджеты (filter)
+
+    Для незалогиненных пользователей показывается только виджет с криптовалютами
     """
 
-    # Виджет 1: Финансовый обзор - общая сумма по всем счетам
-    # QuerySet: aggregate(Sum()) - агрегатная функция суммирования
-    total_balance = Account.objects.aggregate(
+    # Проверяем, залогинен ли пользователь
+    if not request.user.is_authenticated:
+        # Для незалогиненных пользователей показываем только пустую страницу с виджетом криптовалют
+        context = {
+            'total_balance': 0,
+            'accounts_count': 0,
+            'transactions_count': 0,
+            'top_expense_categories': [],
+            'recent_transactions': [],
+            'popular_accounts': [],
+            'active_budgets': [],
+            'monthly_income': 0,
+            'monthly_expense': 0,
+        }
+        return render(request, 'finance/index.html', context)
+
+    # Для залогиненных пользователей показываем их персональные данные
+    user = request.user
+
+    # Виджет 1: Финансовый обзор - общая сумма по счетам ТЕКУЩЕГО пользователя
+    # QuerySet: filter() - фильтрация по пользователю
+    # aggregate(Sum()) - агрегатная функция суммирования
+    total_balance = Account.objects.filter(user=user).aggregate(
         total=Sum('balance')
     )['total'] or 0
 
-    # Количество счетов
-    # QuerySet: count() - агрегатная функция подсчета
-    accounts_count = Account.objects.count()
+    # Количество счетов ТЕКУЩЕГО пользователя
+    # QuerySet: filter() - фильтрация по пользователю
+    # count() - агрегатная функция подсчета
+    accounts_count = Account.objects.filter(user=user).count()
 
-    # Количество транзакций
-    # QuerySet: count() - агрегатная функция подсчета
-    transactions_count = Transaction.objects.count()
+    # Количество транзакций ТЕКУЩЕГО пользователя
+    # QuerySet: filter() - фильтрация по счетам пользователя
+    # count() - агрегатная функция подсчета
+    transactions_count = Transaction.objects.filter(account__user=user).count()
 
-    # Виджет 2: Топ-5 категорий по количеству транзакций
-    # QuerySet: filter() - фильтрация по типу расходов
+    # Виджет 2: Топ-5 категорий расходов по количеству транзакций ТЕКУЩЕГО пользователя
+    # QuerySet: filter() - фильтрация по типу расходов и пользователю
     # annotate(Count()) - агрегатная функция подсчета
     # order_by() - сортировка по убыванию количества
     # [:5] - ограничение до 5 записей
     top_expense_categories = Category.objects.filter(
-        category_type='expense'
+        category_type='expense',
+        transactions__account__user=user
     ).annotate(
         transaction_count=Count('transactions')
     ).order_by('-transaction_count')[:5]
 
-    # Виджет 3: Последние 10 транзакций
-    # QuerySet: all() - все записи
+    # Виджет 3: Последние 10 транзакций ТЕКУЩЕГО пользователя
+    # QuerySet: filter() - фильтрация по счетам пользователя
     # order_by() - сортировка по дате (от новых к старым)
     # select_related() - оптимизация запросов
     # [:10] - ограничение до 10 записей
-    recent_transactions = Transaction.objects.all().select_related(
+    recent_transactions = Transaction.objects.filter(
+        account__user=user
+    ).select_related(
         'account', 'category', 'account__currency'
     ).order_by('-transaction_date')[:10]
 
-    # Виджет 4: Популярные счета (топ-5 по балансу)
-    # QuerySet: order_by() - сортировка по балансу (от большего к меньшему)
+    # Виджет 4: Популярные счета ТЕКУЩЕГО пользователя (топ-5 по балансу)
+    # QuerySet: filter() - фильтрация по пользователю
+    # order_by() - сортировка по балансу (от большего к меньшему)
     # select_related() - оптимизация запросов
     # [:5] - ограничение до 5 записей
-    popular_accounts = Account.objects.all().select_related(
-        'currency', 'user'
+    popular_accounts = Account.objects.filter(user=user).select_related(
+        'currency'
     ).order_by('-balance')[:5]
 
-    # Виджет 5: Активные бюджеты
-    # QuerySet: filter() - фильтрация по датам
+    # Виджет 5: Активные бюджеты ТЕКУЩЕГО пользователя
+    # QuerySet: filter() - фильтрация по датам и пользователю
     # Q объекты для сложных условий
     today = timezone.now().date()
     active_budgets = Budget.objects.filter(
-        Q(end_date__isnull=True) | Q(end_date__gte=today),
+        user=user,
         start_date__lte=today
-    ).select_related('user', 'category')[:5]
+    ).filter(
+        Q(end_date__isnull=True) | Q(end_date__gte=today)
+    ).select_related('category')[:5]
 
-    # Статистика за последний месяц
+    # Статистика за последний месяц для ТЕКУЩЕГО пользователя
     last_month = timezone.now() - timedelta(days=30)
 
-    # Сумма доходов за месяц
-    # QuerySet: filter() - фильтрация по типу и дате
+    # Сумма доходов за месяц для ТЕКУЩЕГО пользователя
+    # QuerySet: filter() - фильтрация по типу, дате и пользователю
     # aggregate(Sum()) - агрегатная функция суммирования
     monthly_income = Transaction.objects.filter(
+        account__user=user,
         transaction_type='income',
         transaction_date__gte=last_month
     ).aggregate(total=Sum('amount'))['total'] or 0
 
-    # Сумма расходов за месяц
-    # QuerySet: filter() - фильтрация по типу и дате
+    # Сумма расходов за месяц для ТЕКУЩЕГО пользователя
+    # QuerySet: filter() - фильтрация по типу, дате и пользователю
     # exclude() - исключение определенных записей
     # aggregate(Sum()) - агрегатная функция суммирования
     monthly_expense = Transaction.objects.filter(
+        account__user=user,
         transaction_type='expense',
         transaction_date__gte=last_month
     ).exclude(
