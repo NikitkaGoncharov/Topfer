@@ -305,6 +305,72 @@ def investments(request):
     return render(request, 'finance/investments.html', context)
 
 
+def calculate_balance_history(user, days):
+    """
+    Вспомогательная функция для расчета истории баланса за указанный период
+    """
+    from datetime import date, timedelta
+    from collections import defaultdict
+
+    end_date = date.today()
+    start_date = end_date - timedelta(days=days)
+
+    # Получаем начальный баланс (сумма всех транзакций до start_date)
+    initial_transactions = Transaction.objects.filter(
+        account__user=user,
+        transaction_date__lt=start_date
+    )
+
+    initial_balance = 0
+    for trans in initial_transactions:
+        if trans.transaction_type == 'income':
+            initial_balance += float(trans.amount)
+        elif trans.transaction_type == 'expense':
+            initial_balance -= float(trans.amount)
+
+    # Получаем транзакции за период
+    period_transactions = Transaction.objects.filter(
+        account__user=user,
+        transaction_date__gte=start_date,
+        transaction_date__lte=end_date
+    ).order_by('transaction_date')
+
+    # Группируем транзакции по дням
+    daily_changes = defaultdict(float)
+    for trans in period_transactions:
+        trans_date = trans.transaction_date.date()
+        if trans.transaction_type == 'income':
+            daily_changes[trans_date] += float(trans.amount)
+        elif trans.transaction_type == 'expense':
+            daily_changes[trans_date] -= float(trans.amount)
+
+    # Создаем массивы для графика
+    balance_labels = []
+    balance_data = []
+    current_balance = initial_balance
+
+    # Определяем формат даты в зависимости от периода
+    if days <= 30:
+        date_format = '%d.%m'
+    elif days <= 90:
+        date_format = '%d.%m'
+    else:
+        date_format = '%d.%m.%y'
+
+    # Проходим по всем дням периода
+    current_date = start_date
+    while current_date <= end_date:
+        balance_labels.append(current_date.strftime(date_format))
+        current_balance += daily_changes.get(current_date, 0)
+        balance_data.append(round(current_balance, 2))
+        current_date += timedelta(days=1)
+
+    return {
+        'labels': balance_labels,
+        'data': balance_data
+    }
+
+
 def analytics(request):
     """Страница аналитики"""
     # Статистика по категориям
@@ -392,6 +458,12 @@ def analytics(request):
         'incomes': [income_dict.get(cat, 0) for cat in sorted_categories]
     }
 
+    # Подготавливаем данные для линейного графика динамики баланса (по умолчанию 30 дней)
+    if request.user.is_authenticated:
+        balance_chart_data = calculate_balance_history(request.user, 30)
+    else:
+        balance_chart_data = {'labels': [], 'data': []}
+
     context = {
         'expense_by_category': expense_by_category,
         'income_by_category': income_by_category,
@@ -405,6 +477,10 @@ def analytics(request):
             'labels': json.dumps(comparison_chart_data['labels']),
             'expenses': json.dumps(comparison_chart_data['expenses']),
             'incomes': json.dumps(comparison_chart_data['incomes'])
+        },
+        'balance_chart_data_json': {
+            'labels': json.dumps(balance_chart_data['labels']),
+            'data': json.dumps(balance_chart_data['data'])
         }
     }
 
@@ -808,6 +884,34 @@ def get_stock_data(request):
                 'success': False,
                 'error': f'Не удалось найти данные для тикера {ticker}'
             }, status=404)
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+def get_balance_history(request):
+    """
+    AJAX endpoint для получения истории баланса за указанный период
+    Параметры:
+    - days: количество дней (30, 90, 365)
+    """
+    try:
+        days = int(request.GET.get('days', 30))
+
+        # Ограничиваем допустимые значения
+        if days not in [30, 90, 365]:
+            days = 30
+
+        balance_data = calculate_balance_history(request.user, days)
+
+        return JsonResponse({
+            'success': True,
+            'data': balance_data
+        })
 
     except Exception as e:
         return JsonResponse({

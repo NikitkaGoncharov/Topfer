@@ -93,6 +93,30 @@
     </div>
 </div>
 
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="widget">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+                <h5 class="widget-title text-info mb-0">
+                    <i class="bi bi-graph-up"></i> Динамика баланса
+                </h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-info active" data-period="30">30 дней</button>
+                    <button type="button" class="btn btn-sm btn-outline-info" data-period="90">90 дней</button>
+                    <button type="button" class="btn btn-sm btn-outline-info" data-period="365">Год</button>
+                </div>
+            </div>
+            {% if user.is_authenticated %}
+            <div style="position: relative; height: 300px;">
+                <canvas id="balanceChart"></canvas>
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-5">Войдите в систему для просмотра графика баланса</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-12 col-md-6 mb-4 mb-md-0">
         <div class="widget">
@@ -364,6 +388,107 @@
                 }
             }
         }
+    });
+    {% endif %}
+
+    // Инициализация линейного графика динамики баланса
+    {% if user.is_authenticated %}
+    const balanceCtx = document.getElementById('balanceChart');
+
+    let balanceChart = new Chart(balanceCtx, {
+        type: 'line',
+        data: {
+            labels: {{ balance_chart_data_json.labels|safe }},
+            datasets: [{
+                label: 'Баланс',
+                data: {{ balance_chart_data_json.data|safe }},
+                backgroundColor: 'rgba(23, 162, 184, 0.2)',
+                borderColor: 'rgba(23, 162, 184, 1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: 'rgba(23, 162, 184, 1)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 10
+                        },
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString('ru-RU') + ' ₽';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.y || 0;
+                            return `Баланс: ${value.toLocaleString('ru-RU')} ₽`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Обработка кликов по кнопкам фильтра периода
+    const periodButtons = document.querySelectorAll('.btn-group button[data-period]');
+
+    periodButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const period = this.getAttribute('data-period');
+
+            // Убираем активный класс со всех кнопок
+            periodButtons.forEach(btn => btn.classList.remove('active'));
+
+            // Добавляем активный класс к текущей кнопке
+            this.classList.add('active');
+
+            // Загружаем новые данные через AJAX
+            fetch(`/api/balance-history/?days=${period}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Обновляем данные графика
+                        balanceChart.data.labels = data.data.labels;
+                        balanceChart.data.datasets[0].data = data.data.data;
+                        balanceChart.update();
+                    } else {
+                        console.error('Ошибка загрузки данных:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка запроса:', error);
+                });
+        });
     });
     {% endif %}
 </script>
