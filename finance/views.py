@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from datetime import timedelta
 import json
 from .models import User, Account, Transaction, Category, Budget, Tag, Stock
@@ -142,7 +143,7 @@ def accounts(request):
 
 
 def transactions(request):
-    """Страница со всеми транзакциями с фильтрами"""
+    """Страница со всеми транзакциями с фильтрами и пагинацией"""
     # Проверяем, авторизован ли пользователь
     if request.user.is_authenticated:
         # Получаем транзакции пользователя
@@ -181,11 +182,24 @@ def transactions(request):
         if date_to:
             all_transactions = all_transactions.filter(transaction_date__lte=date_to)
 
+    # Пагинация - 10 транзакций на страницу
+    paginator = Paginator(all_transactions, 10)
+    page = request.GET.get('page')
+
+    try:
+        transactions_page = paginator.page(page)
+    except PageNotAnInteger:
+        # Если номер страницы не целое число, показываем первую страницу
+        transactions_page = paginator.page(1)
+    except EmptyPage:
+        # Если страница вне диапазона, показываем последнюю страницу
+        transactions_page = paginator.page(paginator.num_pages)
+
     # Получаем все категории для фильтров
     categories = Category.objects.all()
 
     context = {
-        'transactions': all_transactions,
+        'transactions': transactions_page,
         'categories': categories,
         'user_accounts': user_accounts,
         'selected_type': transaction_type,

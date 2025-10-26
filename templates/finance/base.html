@@ -1,3 +1,4 @@
+{% load finance_tags %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -242,6 +243,22 @@
         </ul>
 
         <hr style="background-color: #495057; margin: 20px;">
+
+        <!-- Использование кастомных тегов -->
+        {% if user.is_authenticated %}
+        <div class="px-3 mb-3">
+            <div class="card bg-dark border-secondary">
+                <div class="card-body p-2">
+                    <small class="text-muted d-block">Общий баланс</small>
+                    <strong class="text-success">{% user_balance %} ₽</strong>
+                    <hr class="my-2" style="background-color: #495057;">
+                    <small class="text-muted">Транзакций: {% user_transactions_count %}</small>
+                    <br>
+                    <small class="text-muted">Обновлено: {% current_time "%H:%M" %}</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <ul class="nav flex-column">
             {% if user.is_authenticated %}

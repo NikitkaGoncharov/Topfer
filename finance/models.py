@@ -2,7 +2,44 @@ from django.db import models
 from django.core.validators import EmailValidator
 from django.utils import timezone
 from django.contrib.auth.models import User as DjangoUser
+from django.urls import reverse
 from simple_history.models import HistoricalRecords
+from datetime import timedelta
+
+
+# Собственные модельные менеджеры
+class TransactionManager(models.Manager):
+    """Кастомный менеджер для транзакций"""
+
+    def income(self):
+        """Возвращает только доходы"""
+        return self.filter(transaction_type='income')
+
+    def expense(self):
+        """Возвращает только расходы"""
+        return self.filter(transaction_type='expense')
+
+    def recent(self, days=30):
+        """Возвращает транзакции за последние N дней"""
+        date_from = timezone.now() - timedelta(days=days)
+        return self.filter(transaction_date__gte=date_from)
+
+
+class BudgetManager(models.Manager):
+    """Кастомный менеджер для бюджетов"""
+
+    def active(self):
+        """Возвращает только активные бюджеты"""
+        from django.db.models import Q
+        today = timezone.now().date()
+        return self.filter(
+            Q(end_date__isnull=True) | Q(end_date__gte=today),
+            start_date__lte=today
+        )
+
+    def monthly(self):
+        """Возвращает только ежемесячные бюджеты"""
+        return self.filter(period_type='monthly')
 
 
 class User(models.Model):
@@ -193,6 +230,10 @@ class Account(models.Model):
         """Возвращает строковое представление счета с балансом"""
         return f"{self.account_name} ({self.balance} {self.currency.currency_code})"
 
+    def get_absolute_url(self):
+        """Возвращает абсолютный URL для редактирования счета"""
+        return reverse('finance:account_edit', kwargs={'pk': self.pk})
+
 
 class Tag(models.Model):
     """Модель тега для транзакций"""
@@ -280,6 +321,9 @@ class Transaction(models.Model):
     # История изменений
     history = HistoricalRecords()
 
+    # Собственный менеджер
+    objects = TransactionManager()
+
     class Meta:
         verbose_name = 'Транзакция'
         verbose_name_plural = 'Транзакции'
@@ -288,6 +332,10 @@ class Transaction(models.Model):
     def __str__(self):
         """Возвращает строковое представление транзакции"""
         return f"{self.get_transaction_type_display()} {self.amount} - {self.transaction_date.strftime('%d.%m.%Y')}"
+
+    def get_absolute_url(self):
+        """Возвращает абсолютный URL для редактирования транзакции"""
+        return reverse('finance:transaction_edit', kwargs={'pk': self.pk})
 
 
 class Budget(models.Model):
@@ -337,6 +385,9 @@ class Budget(models.Model):
     # История изменений
     history = HistoricalRecords()
 
+    # Собственный менеджер
+    objects = BudgetManager()
+
     class Meta:
         verbose_name = 'Бюджет'
         verbose_name_plural = 'Бюджеты'
@@ -345,6 +396,10 @@ class Budget(models.Model):
     def __str__(self):
         """Возвращает строковое представление бюджета"""
         return f"{self.budget_name} - {self.amount} ({self.get_period_type_display()})"
+
+    def get_absolute_url(self):
+        """Возвращает абсолютный URL для редактирования бюджета"""
+        return reverse('finance:budget_edit', kwargs={'pk': self.pk})
 
 
 class Stock(models.Model):

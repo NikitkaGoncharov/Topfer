@@ -1,0 +1,20 @@
+{% if budgets %}
+<div class="active-budgets-widget">
+    <ul class="list-group">
+        {% for budget in budgets %}
+        <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>{{ budget.budget_name }}</strong>
+                    <br>
+                    <small class="text-muted">{{ budget.get_period_type_display }}</small>
+                </div>
+                <span class="badge bg-primary">{{ budget.amount|floatformat:2 }} ₽</span>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<p class="text-muted">Нет активных бюджетов</p>
+{% endif %}
