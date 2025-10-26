@@ -41,6 +41,7 @@ urlpatterns = [
     path('api/crypto/', views.get_crypto_data, name='crypto_data'),
     path('api/stock/', views.get_stock_data, name='stock_data'),
     path('api/balance-history/', views.get_balance_history, name='balance_history'),
+    path('api/comparison-data/', views.get_comparison_data, name='comparison_data'),
 
     # Авторизация
     path('register/', views.register, name='register'),

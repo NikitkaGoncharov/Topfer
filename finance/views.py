@@ -371,6 +371,61 @@ def calculate_balance_history(user, days):
     }
 
 
+def calculate_comparison_data(user, days=None):
+    """
+    Вспомогательная функция для расчета данных сравнения доходов и расходов по категориям
+    days=None означает "все время"
+    """
+    from datetime import date, timedelta
+    from django.db.models import Sum, Q
+
+    # Определяем период
+    if days:
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days)
+        date_filter = Q(transactions__transaction_date__gte=start_date, transactions__transaction_date__lte=end_date)
+    else:
+        date_filter = Q()  # Пустой фильтр = все время
+
+    # Получаем расходы по категориям
+    expense_by_category = Category.objects.filter(
+        category_type='expense'
+    ).annotate(
+        total=Sum('transactions__amount', filter=Q(transactions__account__user=user) & date_filter)
+    ).order_by('-total')
+
+    # Получаем доходы по категориям
+    income_by_category = Category.objects.filter(
+        category_type='income'
+    ).annotate(
+        total=Sum('transactions__amount', filter=Q(transactions__account__user=user) & date_filter)
+    ).order_by('-total')
+
+    # Собираем все уникальные категории
+    all_categories = set()
+    expense_dict = {}
+    income_dict = {}
+
+    for cat in expense_by_category:
+        if cat.total and cat.total > 0:
+            all_categories.add(cat.category_name)
+            expense_dict[cat.category_name] = float(cat.total)
+
+    for cat in income_by_category:
+        if cat.total and cat.total > 0:
+            all_categories.add(cat.category_name)
+            income_dict[cat.category_name] = float(cat.total)
+
+    # Сортируем категории по алфавиту
+    sorted_categories = sorted(all_categories)
+
+    return {
+        'labels': sorted_categories,
+        'expenses': [expense_dict.get(cat, 0) for cat in sorted_categories],
+        'incomes': [income_dict.get(cat, 0) for cat in sorted_categories]
+    }
+
+
 def analytics(request):
     """Страница аналитики"""
     # Статистика по категориям
@@ -430,33 +485,11 @@ def analytics(request):
             )
 
     # Подготавливаем данные для столбчатой диаграммы сравнения доходов и расходов
-    # Собираем все уникальные категории (и доходов, и расходов)
-    all_categories = set()
-    expense_dict = {}
-    income_dict = {}
-
-    for category in expense_by_category:
-        if category.total_amount:
-            all_categories.add(category.category_name)
-            expense_dict[category.category_name] = float(category.total_amount)
-
-    for category in income_by_category:
-        if category.total_amount:
-            all_categories.add(category.category_name)
-            income_dict[category.category_name] = float(category.total_amount)
-
-    # Сортируем категории по сумме (доходы + расходы)
-    sorted_categories = sorted(
-        all_categories,
-        key=lambda x: expense_dict.get(x, 0) + income_dict.get(x, 0),
-        reverse=True
-    )[:10]  # Топ-10 категорий
-
-    comparison_chart_data = {
-        'labels': sorted_categories,
-        'expenses': [expense_dict.get(cat, 0) for cat in sorted_categories],
-        'incomes': [income_dict.get(cat, 0) for cat in sorted_categories]
-    }
+    # По умолчанию показываем данные за 30 дней
+    if request.user.is_authenticated:
+        comparison_chart_data = calculate_comparison_data(request.user, 30)
+    else:
+        comparison_chart_data = {'labels': [], 'expenses': [], 'incomes': []}
 
     # Подготавливаем данные для линейного графика динамики баланса (по умолчанию 30 дней)
     if request.user.is_authenticated:
@@ -911,6 +944,39 @@ def get_balance_history(request):
         return JsonResponse({
             'success': True,
             'data': balance_data
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+def get_comparison_data(request):
+    """
+    AJAX endpoint для получения данных сравнения доходов и расходов за указанный период
+    Параметры:
+    - days: количество дней (30, 90, 365) или 'all' для всего времени
+    """
+    try:
+        days_param = request.GET.get('days', '30')
+
+        # Определяем период
+        if days_param == 'all':
+            days = None  # Все время
+        else:
+            days = int(days_param)
+            # Ограничиваем допустимые значения
+            if days not in [30, 90, 365]:
+                days = 30
+
+        comparison_data = calculate_comparison_data(request.user, days)
+
+        return JsonResponse({
+            'success': True,
+            'data': comparison_data
         })
 
     except Exception as e:
