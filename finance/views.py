@@ -363,6 +363,35 @@ def analytics(request):
                 category.color if category.color else default_colors[idx % len(default_colors)]
             )
 
+    # Подготавливаем данные для столбчатой диаграммы сравнения доходов и расходов
+    # Собираем все уникальные категории (и доходов, и расходов)
+    all_categories = set()
+    expense_dict = {}
+    income_dict = {}
+
+    for category in expense_by_category:
+        if category.total_amount:
+            all_categories.add(category.category_name)
+            expense_dict[category.category_name] = float(category.total_amount)
+
+    for category in income_by_category:
+        if category.total_amount:
+            all_categories.add(category.category_name)
+            income_dict[category.category_name] = float(category.total_amount)
+
+    # Сортируем категории по сумме (доходы + расходы)
+    sorted_categories = sorted(
+        all_categories,
+        key=lambda x: expense_dict.get(x, 0) + income_dict.get(x, 0),
+        reverse=True
+    )[:10]  # Топ-10 категорий
+
+    comparison_chart_data = {
+        'labels': sorted_categories,
+        'expenses': [expense_dict.get(cat, 0) for cat in sorted_categories],
+        'incomes': [income_dict.get(cat, 0) for cat in sorted_categories]
+    }
+
     context = {
         'expense_by_category': expense_by_category,
         'income_by_category': income_by_category,
@@ -371,6 +400,11 @@ def analytics(request):
             'labels': json.dumps(expense_chart_data['labels']),
             'data': json.dumps(expense_chart_data['data']),
             'colors': json.dumps(expense_chart_data['colors'])
+        },
+        'comparison_chart_data_json': {
+            'labels': json.dumps(comparison_chart_data['labels']),
+            'expenses': json.dumps(comparison_chart_data['expenses']),
+            'incomes': json.dumps(comparison_chart_data['incomes'])
         }
     }
 
