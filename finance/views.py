@@ -110,22 +110,26 @@ def index(request):
     return render(request, 'finance/index.html', context)
 
 
-@login_required
 def accounts(request):
     """
     Страница со счетами текущего пользователя
     Отображает все счета с группировкой по типам и общей статистикой
     """
-    user_accounts = Account.objects.filter(user=request.user).select_related('currency').order_by('-created_date')
+    if request.user.is_authenticated:
+        user_accounts = Account.objects.filter(user=request.user).select_related('currency').order_by('-created_date')
 
-    # Статистика по счетам
-    total_balance = user_accounts.aggregate(total=Sum('balance'))['total'] or 0
-    accounts_by_type = {}
-    for account in user_accounts:
-        acc_type = account.get_account_type_display()
-        if acc_type not in accounts_by_type:
-            accounts_by_type[acc_type] = []
-        accounts_by_type[acc_type].append(account)
+        # Статистика по счетам
+        total_balance = user_accounts.aggregate(total=Sum('balance'))['total'] or 0
+        accounts_by_type = {}
+        for account in user_accounts:
+            acc_type = account.get_account_type_display()
+            if acc_type not in accounts_by_type:
+                accounts_by_type[acc_type] = []
+            accounts_by_type[acc_type].append(account)
+    else:
+        user_accounts = Account.objects.none()
+        total_balance = 0
+        accounts_by_type = {}
 
     context = {
         'user_accounts': user_accounts,
@@ -139,38 +143,46 @@ def accounts(request):
 
 def transactions(request):
     """Страница со всеми транзакциями с фильтрами"""
-    # Получаем все транзакции пользователя
-    all_transactions = Transaction.objects.filter(
-        account__user=request.user
-    ).select_related(
-        'account', 'category', 'account__currency'
-    ).prefetch_related('tags').order_by('-transaction_date')
+    # Проверяем, авторизован ли пользователь
+    if request.user.is_authenticated:
+        # Получаем транзакции пользователя
+        all_transactions = Transaction.objects.filter(
+            account__user=request.user
+        ).select_related(
+            'account', 'category', 'account__currency'
+        ).prefetch_related('tags').order_by('-transaction_date')
 
-    # Фильтры
+        user_accounts = Account.objects.filter(user=request.user)
+    else:
+        # Для неавторизованных пользователей - пустой queryset
+        all_transactions = Transaction.objects.none()
+        user_accounts = Account.objects.none()
+
+    # Фильтры (только для авторизованных пользователей)
     transaction_type = request.GET.get('type', '')
     category_id = request.GET.get('category', '')
     account_id = request.GET.get('account', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
-    if transaction_type:
-        all_transactions = all_transactions.filter(transaction_type=transaction_type)
+    if request.user.is_authenticated:
+        if transaction_type:
+            all_transactions = all_transactions.filter(transaction_type=transaction_type)
 
-    if category_id:
-        all_transactions = all_transactions.filter(category_id=category_id)
+        if category_id:
+            all_transactions = all_transactions.filter(category_id=category_id)
 
-    if account_id:
-        all_transactions = all_transactions.filter(account_id=account_id)
+        if account_id:
+            all_transactions = all_transactions.filter(account_id=account_id)
 
-    if date_from:
-        all_transactions = all_transactions.filter(transaction_date__gte=date_from)
+        if date_from:
+            all_transactions = all_transactions.filter(transaction_date__gte=date_from)
 
-    if date_to:
-        all_transactions = all_transactions.filter(transaction_date__lte=date_to)
+        if date_to:
+            all_transactions = all_transactions.filter(transaction_date__lte=date_to)
 
-    # Получаем все категории и счета пользователя для фильтров
+    # Получаем все категории для фильтров
     categories = Category.objects.all()
-    user_accounts = Account.objects.filter(user=request.user)
 
     context = {
         'transactions': all_transactions,
@@ -240,9 +252,20 @@ def transaction_delete(request, pk):
     })
 
 
-@login_required
 def investments(request):
     """Страница инвестиций с портфелем акций"""
+    if not request.user.is_authenticated:
+        # Для неавторизованных пользователей
+        context = {
+            'stocks_data': [],
+            'stocks_count': 0,
+            'total_investment': 0,
+            'total_current_value': 0,
+            'total_profit': 0,
+            'total_profit_percent': 0,
+        }
+        return render(request, 'finance/investments.html', context)
+
     # Получаем все акции пользователя
     user_stocks = Stock.objects.filter(user=request.user).select_related('currency').order_by('-purchase_date')
 
@@ -428,20 +451,26 @@ def calculate_comparison_data(user, days=None):
 
 def analytics(request):
     """Страница аналитики"""
-    # Статистика по категориям
-    expense_by_category = Category.objects.filter(
-        category_type='expense'
-    ).annotate(
-        total_amount=Sum('transactions__amount'),
-        count=Count('transactions')
-    ).order_by('-total_amount')
+    # Проверяем авторизацию пользователя
+    if request.user.is_authenticated:
+        # Статистика по категориям только для текущего пользователя
+        expense_by_category = Category.objects.filter(
+            category_type='expense'
+        ).annotate(
+            total_amount=Sum('transactions__amount', filter=Q(transactions__account__user=request.user)),
+            count=Count('transactions', filter=Q(transactions__account__user=request.user))
+        ).order_by('-total_amount')
 
-    income_by_category = Category.objects.filter(
-        category_type='income'
-    ).annotate(
-        total_amount=Sum('transactions__amount'),
-        count=Count('transactions')
-    ).order_by('-total_amount')
+        income_by_category = Category.objects.filter(
+            category_type='income'
+        ).annotate(
+            total_amount=Sum('transactions__amount', filter=Q(transactions__account__user=request.user)),
+            count=Count('transactions', filter=Q(transactions__account__user=request.user))
+        ).order_by('-total_amount')
+    else:
+        # Для неавторизованных пользователей - пустые queryset'ы
+        expense_by_category = Category.objects.none()
+        income_by_category = Category.objects.none()
 
     # Подготавливаем данные для диаграммы расходов (только категории с расходами)
     expense_chart_data = {
@@ -697,12 +726,14 @@ def account_delete(request, pk):
 
 # ==================== БЮДЖЕТЫ ====================
 
-@login_required
 def budgets(request):
     """
     Страница списка всех бюджетов пользователя
     """
-    user_budgets = Budget.objects.filter(user=request.user).order_by('-start_date')
+    if request.user.is_authenticated:
+        user_budgets = Budget.objects.filter(user=request.user).order_by('-start_date')
+    else:
+        user_budgets = Budget.objects.none()
 
     context = {
         'budgets': user_budgets,
