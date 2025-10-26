@@ -18,10 +18,30 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from rest_framework.routers import DefaultRouter
+from finance.api import (
+    CurrencyViewSet, CategoryViewSet, TagViewSet,
+    AccountViewSet, TransactionViewSet, BudgetViewSet,
+    StockViewSet, UserViewSet
+)
+
+# Router автоматически создает URL для ViewSets
+# Например: /api/accounts/, /api/accounts/1/, /api/accounts/1/transfer/ и т.д.
+router = DefaultRouter()
+router.register(r'currencies', CurrencyViewSet, basename='currency')
+router.register(r'categories', CategoryViewSet, basename='category')
+router.register(r'tags', TagViewSet, basename='tag')
+router.register(r'accounts', AccountViewSet, basename='account')
+router.register(r'transactions', TransactionViewSet, basename='transaction')
+router.register(r'budgets', BudgetViewSet, basename='budget')
+router.register(r'stocks', StockViewSet, basename='stock')
+router.register(r'users', UserViewSet, basename='user')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('finance.urls')),
+    path('api/', include(router.urls)),  # REST API endpoints
+    path('api-auth/', include('rest_framework.urls')),  # Страница входа для DRF
+    path('', include('finance.urls')),  # Обычные Django views
 ]
 
 if settings.DEBUG:
