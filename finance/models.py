@@ -342,6 +342,13 @@ class Transaction(models.Model):
         null=True,
         verbose_name='Фото чека'
     )
+    attachment = models.FileField(
+        upload_to='transaction_documents/%Y/%m/',
+        blank=True,
+        null=True,
+        verbose_name='Документ',
+        help_text='Прикрепленный документ (договор, счет, накладная и т.д.)'
+    )
     is_recurring = models.BooleanField(
         default=False,
         verbose_name='Повторяющаяся'
@@ -506,6 +513,12 @@ class Stock(models.Model):
     notes = models.TextField(
         blank=True,
         verbose_name='Заметки'
+    )
+    company_website = models.URLField(
+        max_length=500,
+        blank=True,
+        verbose_name='Сайт компании',
+        help_text='URL официального сайта компании'
     )
     created_date = models.DateTimeField(
         default=timezone.now,

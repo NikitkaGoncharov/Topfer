@@ -8,6 +8,9 @@ django-simple-history==3.10.1
 django-import-export==4.3.12
 django-debug-toolbar==6.0.0
 
+# PDF generation
+reportlab==4.4.4
+
 # Database
 psycopg2-binary==2.9.10
 

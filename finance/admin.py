@@ -1,8 +1,18 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.db.models import Count, Sum
+from django.http import HttpResponse
 from import_export.admin import ImportExportModelAdmin
 from simple_history.admin import SimpleHistoryAdmin
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from io import BytesIO
+from datetime import datetime
 from .models import User, Currency, Category, Account, Tag, Transaction, TransactionTag, Budget, Stock
 from .resources import AccountResource, TransactionResource, BudgetResource
 
@@ -273,8 +283,8 @@ class TransactionAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
         ('Теги', {
             'fields': ('tags',)
         }),
-        ('Чек', {
-            'fields': ('receipt_photo', 'receipt_preview'),
+        ('Файлы и документы', {
+            'fields': ('receipt_photo', 'receipt_preview', 'attachment'),
             'classes': ('collapse',)
         }),
     )
@@ -320,6 +330,131 @@ class TransactionAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
                 obj.receipt_photo.url
             )
         return 'Нет чека'
+
+    @admin.action(description='Экспортировать выбранные транзакции в PDF')
+    def export_to_pdf(self, request, queryset):
+        """
+        Генерирует PDF-документ с выбранными транзакциями
+        Демонстрирует использование reportlab для создания PDF в админке
+        """
+        # Создаем HTTP-ответ с PDF
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="transactions_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
+
+        # Создаем буфер для PDF
+        buffer = BytesIO()
+
+        # Создаем PDF документ
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+
+        # Стили
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#1a1a1a'),
+            spaceAfter=30,
+            alignment=1  # Центрирование
+        )
+
+        # Заголовок
+        title = Paragraph("Отчет по транзакциям", title_style)
+        elements.append(title)
+        elements.append(Spacer(1, 0.5*inch))
+
+        # Информация о дате генерации
+        date_style = styles['Normal']
+        date_text = Paragraph(
+            f"Дата создания отчета: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+            date_style
+        )
+        elements.append(date_text)
+        elements.append(Spacer(1, 0.3*inch))
+
+        # Подготовка данных для таблицы
+        data = [['ID', 'Дата', 'Тип', 'Сумма', 'Счет', 'Категория']]
+
+        total_income = 0
+        total_expense = 0
+
+        for transaction in queryset.select_related('account', 'category', 'account__currency'):
+            # Форматируем дату
+            date_str = transaction.transaction_date.strftime('%d.%m.%Y')
+
+            # Форматируем тип транзакции
+            type_str = 'Доход' if transaction.transaction_type == 'income' else 'Расход'
+
+            # Форматируем сумму с валютой
+            amount_str = f"{transaction.amount} {transaction.account.currency.symbol or transaction.account.currency.currency_code}"
+
+            # Добавляем строку в таблицу
+            data.append([
+                str(transaction.id),
+                date_str,
+                type_str,
+                amount_str,
+                transaction.account.account_name[:20],  # Ограничиваем длину
+                transaction.category.category_name[:20] if transaction.category else '-'
+            ])
+
+            # Подсчитываем итоги
+            if transaction.transaction_type == 'income':
+                total_income += float(transaction.amount)
+            else:
+                total_expense += float(transaction.amount)
+
+        # Добавляем итоговую строку
+        data.append(['', '', 'ИТОГО:', f'Доходы: {total_income}', f'Расходы: {total_expense}', ''])
+
+        # Создаем таблицу
+        table = Table(data, colWidths=[0.8*inch, 1.2*inch, 1*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+
+        # Стилизуем таблицу
+        table.setStyle(TableStyle([
+            # Заголовок
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4CAF50')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+
+            # Данные
+            ('BACKGROUND', (0, 1), (-1, -2), colors.beige),
+            ('TEXTCOLOR', (0, 1), (-1, -2), colors.black),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -2), 1, colors.black),
+
+            # Итоговая строка
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#FFC107')),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, -1), (-1, -1), 10),
+        ]))
+
+        elements.append(table)
+
+        # Добавляем информацию о количестве транзакций
+        elements.append(Spacer(1, 0.3*inch))
+        info_text = Paragraph(
+            f"Всего транзакций в отчете: {queryset.count()}",
+            styles['Normal']
+        )
+        elements.append(info_text)
+
+        # Генерируем PDF
+        doc.build(elements)
+
+        # Получаем значение из буфера
+        pdf = buffer.getvalue()
+        buffer.close()
+        response.write(pdf)
+
+        return response
+
+    actions = ['export_to_pdf']
 
 
 @admin.register(Budget)
@@ -424,7 +559,7 @@ class StockAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Информация об акции', {
-            'fields': ('ticker', 'company_name')
+            'fields': ('ticker', 'company_name', 'company_website')
         }),
         ('Покупка', {
             'fields': ('user', 'quantity', 'purchase_price', 'purchase_date', 'currency')
