@@ -246,9 +246,14 @@ def transactions(request):
 
 @login_required
 def transaction_add(request):
-    """Добавление новой транзакции"""
+    """
+    Добавление новой транзакции
+    Демонстрирует использование request.FILES для загрузки файлов
+    """
     if request.method == 'POST':
-        form = TransactionForm(request.POST, user=request.user)
+        # Передаем request.POST и request.FILES для обработки загруженных файлов
+        # request.FILES содержит загруженные файлы (ImageField, FileField)
+        form = TransactionForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             transaction = form.save()
             messages.success(request, f'Транзакция на сумму {transaction.amount} {transaction.account.currency.symbol} успешно создана!')
@@ -264,11 +269,15 @@ def transaction_add(request):
 
 @login_required
 def transaction_edit(request, pk):
-    """Редактирование транзакции"""
+    """
+    Редактирование транзакции
+    Также демонстрирует использование request.FILES
+    """
     transaction = get_object_or_404(Transaction, pk=pk, account__user=request.user)
 
     if request.method == 'POST':
-        form = TransactionForm(request.POST, instance=transaction, user=request.user)
+        # Передаем request.FILES для обработки загруженных файлов
+        form = TransactionForm(request.POST, request.FILES, instance=transaction, user=request.user)
         if form.is_valid():
             transaction = form.save()
             messages.success(request, 'Транзакция успешно обновлена!')
@@ -1061,3 +1070,80 @@ def get_comparison_data(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+
+@login_required
+def categories_statistics(request):
+    """
+    API endpoint для статистики по категориям
+    Демонстрирует использование values() и values_list()
+
+    values() - возвращает словари с указанными полями
+    values_list() - возвращает кортежи с указанными полями
+    """
+    try:
+        # Пример 1: Использование values() для получения данных в виде словарей
+        # Получаем статистику по категориям с количеством транзакций
+        categories_data = Category.objects.filter(
+            category_type='expense',
+            transactions__account__user=request.user
+        ).values(
+            'id',
+            'category_name',
+            'color',
+            'icon'
+        ).annotate(
+            transactions_count=Count('transactions'),
+            total_amount=Sum('transactions__amount')
+        ).order_by('-total_amount')[:10]
+
+        # Пример 2: Использование values_list() для получения только имен категорий
+        # flat=True возвращает список значений вместо списка кортежей
+        category_names = Category.objects.filter(
+            category_type='expense'
+        ).values_list('category_name', flat=True)[:20]
+
+        # Пример 3: values_list() без flat для получения пар значений
+        category_pairs = Category.objects.filter(
+            category_type='expense'
+        ).values_list('id', 'category_name')[:10]
+
+        # Пример 4: values() для получения уникальных типов транзакций пользователя
+        transaction_types = Transaction.objects.filter(
+            account__user=request.user
+        ).values('transaction_type').distinct()
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'categories_statistics': list(categories_data),
+                'all_category_names': list(category_names),
+                'category_id_name_pairs': list(category_pairs),
+                'user_transaction_types': list(transaction_types)
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+def example_http_response_redirect(request):
+    """
+    Пример использования HttpResponseRedirect вместо redirect()
+    HttpResponseRedirect - это класс, который возвращает HTTP редирект
+    """
+    from django.http import HttpResponseRedirect
+    from django.urls import reverse
+
+    # Проверяем, аутентифицирован ли пользователь
+    if not request.user.is_authenticated:
+        # Используем HttpResponseRedirect для редиректа на страницу входа
+        return HttpResponseRedirect(reverse('finance:login'))
+
+    # Если пользователь аутентифицирован, редиректим на главную
+    return HttpResponseRedirect(reverse('finance:index'))
+

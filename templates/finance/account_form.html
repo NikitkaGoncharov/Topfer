@@ -30,31 +30,15 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="{{ form.account_name.id_for_label }}" class="form-label">
-                            {{ form.account_name.label }}
-                        </label>
+                        {{ form.account_name.label_tag }}
                         {{ form.account_name }}
-                        {% if form.account_name.errors %}
-                            <div class="text-danger">
-                                {% for error in form.account_name.errors %}
-                                    <small>{{ error }}</small>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+                        {{ form.account_name.errors }}
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label for="{{ form.account_type.id_for_label }}" class="form-label">
-                            {{ form.account_type.label }}
-                        </label>
+                        {{ form.account_type.label_tag }}
                         {{ form.account_type }}
-                        {% if form.account_type.errors %}
-                            <div class="text-danger">
-                                {% for error in form.account_type.errors %}
-                                    <small>{{ error }}</small>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+                        {{ form.account_type.errors }}
                     </div>
                 </div>
 

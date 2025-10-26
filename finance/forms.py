@@ -201,6 +201,70 @@ class BudgetForm(forms.ModelForm):
         model = Budget
         fields = ['budget_name', 'amount', 'period_type', 'category', 'start_date', 'end_date']
 
+        # Демонстрация widgets в Meta
+        widgets = {
+            'budget_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Например: Бюджет на продукты'
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01'
+            }),
+            'period_type': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'start_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'end_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+        }
+
+        # Демонстрация labels в Meta
+        labels = {
+            'budget_name': 'Название бюджета',
+            'amount': 'Сумма бюджета',
+            'period_type': 'Период',
+            'category': 'Категория расходов',
+            'start_date': 'Дата начала',
+            'end_date': 'Дата окончания'
+        }
+
+        # Демонстрация help_texts в Meta
+        help_texts = {
+            'budget_name': 'Введите понятное название для вашего бюджета',
+            'amount': 'Максимальная сумма расходов на период',
+            'period_type': 'Выберите периодичность бюджета',
+            'category': 'Категория, к которой применяется бюджет',
+            'start_date': 'Дата начала действия бюджета',
+            'end_date': 'Дата окончания (оставьте пустым для бессрочного бюджета)'
+        }
+
+        # Демонстрация error_messages в Meta
+        error_messages = {
+            'budget_name': {
+                'required': 'Пожалуйста, укажите название бюджета',
+                'max_length': 'Название слишком длинное (максимум 200 символов)'
+            },
+            'amount': {
+                'required': 'Пожалуйста, укажите сумму бюджета',
+                'invalid': 'Введите корректную сумму',
+                'max_digits': 'Сумма слишком большая'
+            },
+            'start_date': {
+                'required': 'Пожалуйста, укажите дату начала бюджета',
+                'invalid': 'Введите корректную дату'
+            }
+        }
+
     def __init__(self, *args, **kwargs):
         """
         Инициализация формы
@@ -268,7 +332,8 @@ class TransactionForm(forms.ModelForm):
 
     class Meta:
         model = Transaction
-        fields = ['account', 'transaction_type', 'category', 'amount', 'transaction_date', 'description']
+        # Добавляем поля для загрузки файлов: receipt_photo (ImageField) и attachment (FileField)
+        fields = ['account', 'transaction_type', 'category', 'amount', 'transaction_date', 'description', 'receipt_photo', 'attachment']
 
     def __init__(self, *args, **kwargs):
         """
@@ -298,6 +363,21 @@ class TransactionForm(forms.ModelForm):
             self.save_m2m()
 
         return transaction
+
+    class Media:
+        """
+        Класс Media для подключения дополнительных CSS/JS файлов к форме
+        Демонстрирует использование class Media в Django формах
+        """
+        css = {
+            'all': (
+                'css/transaction-form.css',  # Кастомные стили для формы транзакций
+            )
+        }
+        js = (
+            'js/transaction-form.js',  # JavaScript для динамической работы формы
+            'js/category-filter.js',   # Фильтрация категорий по типу транзакции
+        )
 
 
 class StockForm(forms.ModelForm):

@@ -25,7 +25,8 @@
                 {% endfor %}
             {% endif %}
 
-            <form method="post">
+            <!-- enctype="multipart/form-data" необходим для загрузки файлов через request.FILES -->
+            <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
 
                 <div class="row">
