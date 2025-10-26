@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from django.db.models import Count, Sum
 from import_export.admin import ImportExportModelAdmin
 from simple_history.admin import SimpleHistoryAdmin
-from .models import User, Currency, Category, Account, Tag, Transaction, Budget, Stock
+from .models import User, Currency, Category, Account, Tag, Transaction, TransactionTag, Budget, Stock
 from .resources import AccountResource, TransactionResource, BudgetResource
 
 
@@ -231,6 +231,24 @@ class TagAdmin(admin.ModelAdmin):
         return obj.transactions.count()
 
 
+@admin.register(TransactionTag)
+class TransactionTagAdmin(admin.ModelAdmin):
+    """Админка для промежуточной модели TransactionTag"""
+    list_display = ['transaction', 'tag', 'added_date', 'added_by']
+    list_filter = ['added_date', 'tag']
+    search_fields = ['transaction__description', 'tag__tag_name']
+    raw_id_fields = ['transaction', 'tag', 'added_by']
+    readonly_fields = ['added_date']
+
+
+class TransactionTagInline(admin.TabularInline):
+    """Inline для управления тегами транзакций через промежуточную модель"""
+    model = TransactionTag
+    extra = 1
+    raw_id_fields = ['tag', 'added_by']
+    readonly_fields = ['added_date']
+
+
 @admin.register(Transaction)
 class TransactionAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
     resource_class = TransactionResource  # Подключаем Resource для экспорта
@@ -238,11 +256,12 @@ class TransactionAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
     list_filter = ['transaction_type', 'is_recurring', 'transaction_date', 'account__account_type', 'category__category_type']
     search_fields = ['description', 'account__account_name', 'account__user__email', 'category__category_name']
     raw_id_fields = ['account', 'category']
-    filter_horizontal = ['tags']
     list_display_links = ['transaction_id', 'account_name']
     readonly_fields = ['transaction_date', 'receipt_preview']
     date_hierarchy = 'transaction_date'
     history_list_display = ['amount', 'transaction_type']  # История изменений суммы и типа
+    filter_horizontal = ['tags']  # Удобный виджет для выбора тегов
+    inlines = [TransactionTagInline]  # Добавляем inline для тегов (для демонстрации)
 
     fieldsets = (
         ('Основная информация', {
@@ -251,12 +270,12 @@ class TransactionAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
         ('Детали', {
             'fields': ('transaction_date', 'description', 'is_recurring')
         }),
+        ('Теги', {
+            'fields': ('tags',)
+        }),
         ('Чек', {
             'fields': ('receipt_photo', 'receipt_preview'),
             'classes': ('collapse',)
-        }),
-        ('Теги', {
-            'fields': ('tags',)
         }),
     )
 

@@ -282,6 +282,23 @@ class TransactionForm(forms.ModelForm):
             # Фильтруем счета только для текущего пользователя
             self.fields['account'].queryset = Account.objects.filter(user=user)
 
+    def save(self, commit=True):
+        """
+        Переопределенный метод save с параметром commit
+        Позволяет создать объект без немедленного сохранения в БД
+        """
+        transaction = super().save(commit=False)
+
+        # Дополнительная логика перед сохранением
+        # Например, можно установить дополнительные поля или выполнить валидацию
+
+        if commit:
+            transaction.save()
+            # Сохраняем связанные объекты (M2M) только если commit=True
+            self.save_m2m()
+
+        return transaction
+
 
 class StockForm(forms.ModelForm):
     """

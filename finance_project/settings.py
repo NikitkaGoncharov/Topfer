@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django_filters',  # Django Filter для фильтрации в API
     'simple_history',  # Django Simple History для отслеживания изменений
     'import_export',  # Django Import-Export для экспорта данных в Excel
+    'debug_toolbar',  # Django Debug Toolbar для отладки
     'finance',
 ]
 
@@ -53,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',  # Для отслеживания пользователя в истории
+    'debug_toolbar.middleware.DebugToolbarMiddleware',  # Django Debug Toolbar middleware
 ]
 
 ROOT_URLCONF = 'finance_project.urls'
@@ -164,3 +166,9 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',  # Сортировка
     ],
 }
+
+# Django Debug Toolbar settings
+INTERNAL_IPS = [
+    '127.0.0.1',
+    'localhost',
+]

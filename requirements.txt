@@ -1,0 +1,30 @@
+# Core Django
+Django==5.2.7
+djangorestframework==3.16.1
+
+# Django extensions
+django-filter==25.2
+django-simple-history==3.10.1
+django-import-export==4.3.12
+django-debug-toolbar==6.0.0
+
+# Database
+psycopg2-binary==2.9.10
+
+# HTTP requests
+requests==2.31.0
+
+# Image processing
+Pillow==10.0.1
+
+# Data processing
+pandas==2.2.2
+numpy==1.26.1
+
+# Excel support (for django-import-export)
+tablib==3.9.0
+
+# Additional utilities
+python-dateutil==2.8.2
+python-dotenv==1.0.0
+pytz==2024.1

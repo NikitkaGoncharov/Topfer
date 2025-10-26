@@ -264,6 +264,41 @@ class Tag(models.Model):
         return self.tag_name
 
 
+class TransactionTag(models.Model):
+    """
+    Промежуточная модель для связи Transaction и Tag
+    Используется для демонстрации ManyToManyField с параметром through
+    """
+    transaction = models.ForeignKey(
+        'Transaction',
+        on_delete=models.CASCADE,
+        verbose_name='Транзакция'
+    )
+    tag = models.ForeignKey(
+        Tag,
+        on_delete=models.CASCADE,
+        verbose_name='Тег'
+    )
+    added_date = models.DateTimeField(
+        default=timezone.now,
+        verbose_name='Дата добавления тега'
+    )
+    added_by = models.ForeignKey(
+        DjangoUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name='Добавлено пользователем'
+    )
+
+    class Meta:
+        verbose_name = 'Тег транзакции'
+        verbose_name_plural = 'Теги транзакций'
+        unique_together = ['transaction', 'tag']
+
+    def __str__(self):
+        return f"{self.transaction} - {self.tag}"
+
+
 class Transaction(models.Model):
     """Модель транзакции"""
     account = models.ForeignKey(
@@ -336,6 +371,34 @@ class Transaction(models.Model):
     def get_absolute_url(self):
         """Возвращает абсолютный URL для редактирования транзакции"""
         return reverse('finance:transaction_edit', kwargs={'pk': self.pk})
+
+    def save(self, *args, **kwargs):
+        """
+        Переопределенный метод save для автоматического обновления баланса счета
+        """
+        # Если это редактирование существующей транзакции
+        if self.pk:
+            # Получаем старую версию транзакции
+            old_transaction = Transaction.objects.get(pk=self.pk)
+
+            # Отменяем старую транзакцию на счете
+            if old_transaction.transaction_type == 'income':
+                old_transaction.account.balance -= old_transaction.amount
+            elif old_transaction.transaction_type == 'expense':
+                old_transaction.account.balance += old_transaction.amount
+
+            old_transaction.account.save()
+
+        # Применяем новую транзакцию
+        if self.transaction_type == 'income':
+            self.account.balance += self.amount
+        elif self.transaction_type == 'expense':
+            self.account.balance -= self.amount
+
+        self.account.save()
+
+        # Сохраняем саму транзакцию
+        super().save(*args, **kwargs)
 
 
 class Budget(models.Model):
