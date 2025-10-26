@@ -6,6 +6,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from datetime import timedelta
+import json
 from .models import User, Account, Transaction, Category, Budget, Tag, Stock
 from .services import BinanceService, StockService
 from .forms import UserRegistrationForm, UserLoginForm, AccountForm, BudgetForm, TransactionForm, StockForm
@@ -321,9 +322,56 @@ def analytics(request):
         count=Count('transactions')
     ).order_by('-total_amount')
 
+    # Подготавливаем данные для диаграммы расходов (только категории с расходами)
+    expense_chart_data = {
+        'labels': [],
+        'data': [],
+        'colors': []
+    }
+
+    # Палитра с максимальным цветовым контрастом (различимы даже при дальтонизме)
+    # Используем научно подобранные цвета из палитры Келли и качественных палитр ColorBrewer
+    default_colors = [
+        '#e6194b',  # Красный
+        '#3cb44b',  # Зеленый
+        '#ffe119',  # Желтый
+        '#4363d8',  # Синий
+        '#f58231',  # Оранжевый
+        '#911eb4',  # Фиолетовый
+        '#46f0f0',  # Циан
+        '#f032e6',  # Маджента
+        '#bcf60c',  # Лайм
+        '#fabebe',  # Розовый
+        '#008080',  # Морской волны
+        '#e6beff',  # Лавандовый
+        '#9a6324',  # Коричневый
+        '#fffac8',  # Бежевый
+        '#800000',  # Бордовый
+        '#aaffc3',  # Мятный
+        '#808000',  # Оливковый
+        '#ffd8b1',  # Персиковый
+        '#000075',  # Темно-синий
+        '#808080',  # Серый
+    ]
+
+    for idx, category in enumerate(expense_by_category):
+        if category.total_amount:  # Только если есть транзакции
+            expense_chart_data['labels'].append(category.category_name)
+            expense_chart_data['data'].append(float(category.total_amount))
+            # Используем цвет категории или цвет по умолчанию
+            expense_chart_data['colors'].append(
+                category.color if category.color else default_colors[idx % len(default_colors)]
+            )
+
     context = {
         'expense_by_category': expense_by_category,
         'income_by_category': income_by_category,
+        'expense_chart_data': expense_chart_data,
+        'expense_chart_data_json': {
+            'labels': json.dumps(expense_chart_data['labels']),
+            'data': json.dumps(expense_chart_data['data']),
+            'colors': json.dumps(expense_chart_data['colors'])
+        }
     }
 
     return render(request, 'finance/analytics.html', context)

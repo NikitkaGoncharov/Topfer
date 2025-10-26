@@ -61,6 +61,23 @@
 
 {% block content %}
 
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="widget">
+            <h5 class="widget-title text-danger">
+                <i class="bi bi-pie-chart-fill"></i> Распределение расходов по категориям
+            </h5>
+            {% if expense_chart_data.labels %}
+            <div style="position: relative; height: 400px;">
+                <canvas id="expenseChart"></canvas>
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-5">Нет данных о расходах для отображения</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-12 col-md-6 mb-4 mb-md-0">
         <div class="widget">
@@ -168,4 +185,93 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Подключаем Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+    // Инициализация диаграммы расходов по категориям
+    {% if expense_chart_data.labels %}
+    const expenseCtx = document.getElementById('expenseChart');
+
+    const expenseChart = new Chart(expenseCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ expense_chart_data_json.labels|safe }},
+            datasets: [{
+                label: 'Расходы',
+                data: {{ expense_chart_data_json.data|safe }},
+                backgroundColor: {{ expense_chart_data_json.colors|safe }},
+                borderColor: '#ffffff',
+                borderWidth: 2,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 12
+                        },
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                const dataset = data.datasets[0];
+                                const total = dataset.data.reduce((a, b) => a + b, 0);
+
+                                return data.labels.map((label, i) => {
+                                    const value = dataset.data[i];
+                                    const percentage = ((value / total) * 100).toFixed(1);
+
+                                    return {
+                                        text: `${label}: ${value.toLocaleString('ru-RU')} ₽ (${percentage}%)`,
+                                        fillStyle: dataset.backgroundColor[i],
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value.toLocaleString('ru-RU')} ₽ (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Адаптация для мобильных устройств
+    if (window.innerWidth < 768) {
+        expenseChart.options.plugins.legend.position = 'bottom';
+        expenseChart.update();
+    }
+
+    // Обновление позиции легенды при изменении размера окна
+    window.addEventListener('resize', function() {
+        if (window.innerWidth < 768) {
+            expenseChart.options.plugins.legend.position = 'bottom';
+        } else {
+            expenseChart.options.plugins.legend.position = 'right';
+        }
+        expenseChart.update();
+    });
+    {% endif %}
+</script>
 {% endblock %}
